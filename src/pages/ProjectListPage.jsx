@@ -4,7 +4,7 @@ import { useProjects, useCreateProject, useUpdateProject } from '../hooks/usePro
 import { useAuth } from '../hooks/useAuth'
 import { useInitContract } from '../hooks/useContract'
 import { useDeleteProject } from '../hooks/useDeleteProject'
-import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2, Download, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { SkeletonTable } from '../components/common/Skeleton'
 import { exportCsv } from '../utils/exportCsv'
 import { format } from 'date-fns'
@@ -202,7 +202,9 @@ export default function ProjectListPage() {
                   <th key={col.key} className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer select-none hover:opacity-80" style={{ color: 'var(--text-dim)' }} onClick={() => handleSort(col.key)}>
                     <span className="inline-flex items-center">
                       {col.label}
-                      {sort.field === col.key && <ArrowUpDown className="w-3 h-3 ml-1" />}
+                      {sort.field === col.key
+                        ? (sort.asc ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />)
+                        : <ArrowUpDown className="w-3 h-3 ml-1 opacity-30" />}
                     </span>
                   </th>
                 ))}
