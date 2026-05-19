@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../utils/supabase'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, ChevronLeft, ChevronRight, X } from 'lucide-react'
+
+const PAGE_SIZE = 20
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('users')
@@ -12,26 +14,48 @@ export default function AdminPage() {
   const [logFilter, setLogFilter] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [newUser, setNewUser] = useState({ email: '', password: '', name: '' })
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [detailData, setDetailData] = useState(null)
 
   useEffect(() => {
-    fetchData()
+    fetchUsers()
   }, [])
 
-  async function fetchData() {
-    setLoading(true)
-    try {
-      const [usersResult, logsResult] = await Promise.all([
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100)
-      ])
+  useEffect(() => {
+    fetchLogs()
+  }, [page, logFilter])
 
-      if (usersResult.data) setUsers(usersResult.data)
-      if (logsResult.data) setLogs(logsResult.data)
-    } catch (error) {
-      toast.error('加载失败')
+  async function fetchUsers() {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) setUsers(data)
+  }
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true)
+    const from = (page - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    let query = supabase
+      .from('audit_logs')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to)
+
+    if (logFilter) {
+      query = query.eq('project_id', logFilter)
+    }
+
+    const { data, count, error } = await query
+    if (!error && data) {
+      setLogs(data)
+      setTotalCount(count || 0)
     }
     setLoading(false)
-  }
+  }, [page, logFilter])
 
   async function handleRoleChange(userId, newRole) {
     const { error } = await supabase
@@ -43,7 +67,7 @@ export default function AdminPage() {
       toast.error('更新失败: ' + error.message)
     } else {
       toast.success('角色已更新')
-      fetchData()
+      fetchUsers()
     }
   }
 
@@ -65,17 +89,13 @@ export default function AdminPage() {
       toast.success('用户创建成功，请用户查收确认邮件')
       setShowCreateUser(false)
       setNewUser({ email: '', password: '', name: '' })
-      fetchData()
+      fetchUsers()
     } catch (error) {
       toast.error('创建失败: ' + error.message)
     }
   }
 
-  const filteredLogs = logFilter
-    ? logs.filter((log) => log.project_id === logFilter)
-    : logs
-
-  if (loading) {
+  if (loading && activeTab === 'users') {
     return <div className="flex items-center justify-center h-64">加载中...</div>
   }
 
@@ -234,7 +254,7 @@ export default function AdminPage() {
             <input
               type="text"
               value={logFilter}
-              onChange={(e) => setLogFilter(e.target.value)}
+              onChange={(e) => { setLogFilter(e.target.value); setPage(1) }}
               placeholder="按项目 ID 筛选..."
               className="w-full max-w-md rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
@@ -252,42 +272,89 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredLogs.map((log) => (
-                  <tr key={log.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {log.table_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        log.action === 'INSERT'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                      {log.record_id?.slice(0, 8)}...
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <details className="cursor-pointer">
-                        <summary className="text-blue-600 hover:underline">查看数据</summary>
-                        <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-auto max-w-xs">
-                          {JSON.stringify(log.new_data, null, 2)}
-                        </pre>
-                      </details>
-                    </td>
-                  </tr>
-                ))}
+                {loading ? (
+                  <tr><td colSpan={5} className="text-center py-8 text-gray-500">加载中...</td></tr>
+                ) : logs.length === 0 ? (
+                  <tr><td colSpan={5} className="text-center py-8 text-gray-500">暂无日志记录</td></tr>
+                ) : (
+                  logs.map((log) => (
+                    <tr key={log.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {log.table_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          log.action === 'INSERT'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                        {log.record_id?.slice(0, 8)}...
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        <button
+                          onClick={() => setDetailData(log.new_data)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          查看数据
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
+          </div>
 
-            {filteredLogs.length === 0 && (
-              <div className="text-center py-8 text-gray-500">暂无日志记录</div>
-            )}
+          {/* 分页 */}
+          {totalCount > PAGE_SIZE && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-gray-500">
+                共 {totalCount} 条，第 {page} / {Math.ceil(totalCount / PAGE_SIZE)} 页
+              </p>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(Math.ceil(totalCount / PAGE_SIZE), p + 1))}
+                  disabled={page >= Math.ceil(totalCount / PAGE_SIZE)}
+                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 数据详情弹窗 */}
+      {detailData !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setDetailData(null)} />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">数据详情</h3>
+              <button onClick={() => setDetailData(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-4 overflow-auto flex-1">
+              <pre className="text-sm bg-gray-50 p-4 rounded-lg whitespace-pre-wrap break-words">
+                {JSON.stringify(detailData, null, 2)}
+              </pre>
+            </div>
           </div>
         </div>
       )}
