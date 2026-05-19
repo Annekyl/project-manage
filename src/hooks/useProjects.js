@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../utils/supabase'
 
-export function useProjects({ page = 1, pageSize = 4, search = '' } = {}) {
+export function useProjects({ page = 1, pageSize = 10, search = '', status = '' } = {}) {
   return useQuery({
-    queryKey: ['projects', { page, pageSize, search }],
+    queryKey: ['projects', { page, pageSize, search, status }],
     queryFn: async () => {
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1
@@ -11,6 +11,33 @@ export function useProjects({ page = 1, pageSize = 4, search = '' } = {}) {
       let query = supabase
         .from('projects')
         .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to)
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,company_name.ilike.%${search}%`)
+      }
+      if (status) {
+        query = query.eq('status', status)
+      }
+
+      const { data, count, error } = await query
+      if (error) throw error
+      return { data, totalCount: count || 0 }
+    }
+  })
+}
+
+export function useProjectsWithDetails({ page = 1, pageSize = 10, search = '' } = {}) {
+  return useQuery({
+    queryKey: ['projects-detail', { page, pageSize, search }],
+    queryFn: async () => {
+      const from = (page - 1) * pageSize
+      const to = from + pageSize - 1
+
+      let query = supabase
+        .from('projects')
+        .select(`*, contracts(*), payments(*), invoices(*), reimbursements(*), closures(*)`, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to)
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useProjects } from '../hooks/useProjects'
+import { useProjectsWithDetails } from '../hooks/useProjects'
 import { supabase } from '../utils/supabase'
 import ProgressStepper from '../components/common/ProgressStepper'
 import { Search, FolderOpen, Clock, CheckCircle, User, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [jumpPage, setJumpPage] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function DashboardPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const { data, isLoading } = useProjects({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
+  const { data, isLoading } = useProjectsWithDetails({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
   const projects = data?.data || []
   const totalCount = data?.totalCount || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
@@ -236,6 +237,17 @@ export default function DashboardPage() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
+                <input
+                  type="number"
+                  min="1"
+                  max={totalPages}
+                  value={jumpPage}
+                  onChange={(e) => setJumpPage(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(jumpPage); if (p >= 1 && p <= totalPages) { setPage(p); setJumpPage('') } } }}
+                  placeholder={String(page)}
+                  className="w-14 text-center rounded-lg border text-sm py-1.5"
+                  style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }}
+                />
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}

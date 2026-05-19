@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 
 const INVOICE_TYPES = ['普通发票', '专用发票', '增值税发票']
 
-export default function InvoiceTab({ project, isAdmin }) {
+export default function InvoiceTab({ project, isAdmin, currentUserId }) {
   const invoice = project.invoices?.[0]
   const initInvoice = useInitInvoice()
   const updateInvoice = useUpdateInvoice(project.id)
@@ -34,7 +34,7 @@ export default function InvoiceTab({ project, isAdmin }) {
       setLocalData({
         invoice_type: invoice.invoice_type || '',
         invoice_amount: invoice.invoice_amount || '',
-        responsible_id: invoice.responsible_id || '',
+        responsible_id: invoice.responsible_id || currentUserId || '',
         responsible_name: invoice.responsible_name || '',
         preview_sent_at: invoice.preview_sent_at || '',
         customer_confirmed_at: invoice.customer_confirmed_at || '',

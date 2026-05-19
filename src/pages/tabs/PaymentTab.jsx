@@ -7,7 +7,7 @@ import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import toast from 'react-hot-toast'
 
-export default function PaymentTab({ project, isAdmin }) {
+export default function PaymentTab({ project, isAdmin, currentUserId }) {
   const payment = project.payments?.[0]
   const initPayment = useInitPayment()
   const updatePayment = useUpdatePayment(project.id)
@@ -32,7 +32,7 @@ export default function PaymentTab({ project, isAdmin }) {
           paid_at: payment.paid_at || ''
         },
         claim: {
-          claim_responsible_id: payment.claim_responsible_id || '',
+          claim_responsible_id: payment.claim_responsible_id || currentUserId || '',
           claim_responsible_name: payment.claim_responsible_name || '',
           claimed_at: payment.claimed_at || '',
           virtual_account_confirmed: payment.virtual_account_confirmed || false

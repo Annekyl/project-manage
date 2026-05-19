@@ -7,7 +7,7 @@ import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import toast from 'react-hot-toast'
 
-export default function ClosureTab({ project, isAdmin }) {
+export default function ClosureTab({ project, isAdmin, currentUserId }) {
   const closure = project.closures?.[0]
   const initClosure = useInitClosure()
   const updateClosure = useUpdateClosure(project.id)
@@ -29,7 +29,7 @@ export default function ClosureTab({ project, isAdmin }) {
   useEffect(() => {
     if (closure) {
       setLocalData({
-        responsible_id: closure.responsible_id || '',
+        responsible_id: closure.responsible_id || currentUserId || '',
         responsible_name: closure.responsible_name || '',
         status: closure.status || 'pending',
         report_submitted_at: closure.report_submitted_at || '',

@@ -4,7 +4,7 @@ import { useProjects, useCreateProject, useUpdateProject } from '../hooks/usePro
 import { useAuth } from '../hooks/useAuth'
 import { useInitContract } from '../hooks/useContract'
 import { useDeleteProject } from '../hooks/useDeleteProject'
-import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2, Download } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2, Download, ArrowUpDown } from 'lucide-react'
 import { SkeletonTable } from '../components/common/Skeleton'
 import { exportCsv } from '../utils/exportCsv'
 import { format } from 'date-fns'
@@ -16,6 +16,9 @@ export default function ProjectListPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [sort, setSort] = useState({ field: 'created_at', asc: false })
+  const [jumpPage, setJumpPage] = useState('')
   const { isAdmin } = useAuth()
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()
@@ -40,7 +43,7 @@ export default function ProjectListPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const { data, isLoading } = useProjects({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
+  const { data, isLoading } = useProjects({ page, pageSize: PAGE_SIZE, search: debouncedSearch, status: statusFilter })
   const projects = data?.data || []
   const totalCount = data?.totalCount || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
@@ -102,6 +105,20 @@ export default function ProjectListPage() {
 
   const inputStyle = { background: 'var(--bg-input)', borderColor: 'var(--border)', color: 'var(--text)' }
 
+  // 客户端排序
+  const sortedProjects = [...projects].sort((a, b) => {
+    const { field, asc } = sort
+    let va = a[field], vb = b[field]
+    if (field === 'total_amount') { va = va || 0; vb = vb || 0 }
+    if (va < vb) return asc ? -1 : 1
+    if (va > vb) return asc ? 1 : -1
+    return 0
+  })
+
+  function handleSort(field) {
+    setSort(prev => prev.field === field ? { field, asc: !prev.asc } : { field, asc: true })
+  }
+
   return (
     <div className="page-enter">
       <div className="flex justify-between items-center mb-6">
@@ -136,9 +153,9 @@ export default function ProjectListPage() {
         </div>
       </div>
 
-      {/* 搜索框 */}
-      <div className="mb-5">
-        <div className="relative">
+      {/* 搜索和筛选 */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -146,9 +163,20 @@ export default function ProjectListPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索项目名称或企业名称..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl shadow-sm transition-all"
-            style={{ ...inputStyle }}
+            style={inputStyle}
           />
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
+          className="px-3 py-2.5 rounded-xl shadow-sm transition-all sm:w-40"
+          style={inputStyle}
+        >
+          <option value="">全部状态</option>
+          {Object.entries(statusLabels).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
       </div>
 
       {/* 项目表格 */}
@@ -163,17 +191,26 @@ export default function ProjectListPage() {
           <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>
             <thead style={{ background: 'var(--bg-table-head)' }}>
               <tr>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>项目名称</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>企业名称</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>项目负责人</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>总金额</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>当前状态</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>创建时间</th>
+                {[
+                  { key: 'name', label: '项目名称' },
+                  { key: 'company_name', label: '企业名称' },
+                  { key: 'company_contact', label: '项目负责人' },
+                  { key: 'total_amount', label: '总金额' },
+                  { key: 'status', label: '当前状态' },
+                  { key: 'created_at', label: '创建时间' },
+                ].map(col => (
+                  <th key={col.key} className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer select-none hover:opacity-80" style={{ color: 'var(--text-dim)' }} onClick={() => handleSort(col.key)}>
+                    <span className="inline-flex items-center">
+                      {col.label}
+                      {sort.field === col.key && <ArrowUpDown className="w-3 h-3 ml-1" />}
+                    </span>
+                  </th>
+                ))}
                 {isAdmin && <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>操作</th>}
               </tr>
             </thead>
             <tbody className="divide-y" style={{ borderColor: 'var(--border-light)' }}>
-              {projects.map((project) => (
+              {sortedProjects.map((project) => (
                 <tr
                   key={project.id}
                   onClick={() => navigate(`/projects/${project.id}`)}
@@ -254,6 +291,17 @@ export default function ProjectListPage() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
+            <input
+              type="number"
+              min="1"
+              max={totalPages}
+              value={jumpPage}
+              onChange={(e) => setJumpPage(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(jumpPage); if (p >= 1 && p <= totalPages) { setPage(p); setJumpPage('') } } }}
+              placeholder={String(page)}
+              className="w-14 text-center rounded-lg border text-sm py-1.5"
+              style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }}
+            />
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}

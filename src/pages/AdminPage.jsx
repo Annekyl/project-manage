@@ -15,17 +15,21 @@ export default function AdminPage() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [logFilter, setLogFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [newUser, setNewUser] = useState({ email: '', password: '', name: '' })
   const [userPage, setUserPage] = useState(1)
   const [userTotalCount, setUserTotalCount] = useState(0)
   const [logPage, setLogPage] = useState(1)
   const [logTotalCount, setLogTotalCount] = useState(0)
+  const [userJumpPage, setUserJumpPage] = useState('')
+  const [logJumpPage, setLogJumpPage] = useState('')
   const [detailData, setDetailData] = useState(null)
   const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: '', userName: '', newRole: '' })
 
   useEffect(() => { fetchUsers() }, [userPage])
-  useEffect(() => { fetchLogs() }, [logPage, logFilter])
+  useEffect(() => { fetchLogs() }, [logPage, logFilter, dateFrom, dateTo])
 
   async function fetchUsers() {
     setLoading(true)
@@ -42,6 +46,8 @@ export default function AdminPage() {
     const to = from + PAGE_SIZE - 1
     let query = supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to)
     if (logFilter) query = query.eq('project_id', logFilter)
+    if (dateFrom) query = query.gte('created_at', dateFrom)
+    if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
     const { data, count, error } = await query
     if (!error && data) { setLogs(data); setLogTotalCount(count || 0) }
     setLoading(false)
@@ -153,6 +159,7 @@ export default function AdminPage() {
               <p className="text-sm" style={{ color: 'var(--text-dim)' }}>共 {userTotalCount} 条，第 {userPage} / {userTotalPages} 页</p>
               <div className="flex items-center space-x-2">
                 <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronLeft className="w-4 h-4" /></button>
+                <input type="number" min="1" max={userTotalPages} value={userJumpPage} onChange={(e) => setUserJumpPage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(userJumpPage); if (p >= 1 && p <= userTotalPages) { setUserPage(p); setUserJumpPage('') } } }} placeholder={String(userPage)} className="w-14 text-center rounded-lg border text-sm py-1.5" style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }} />
                 <button onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))} disabled={userPage >= userTotalPages} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
@@ -182,8 +189,11 @@ export default function AdminPage() {
       {/* 审计日志 */}
       {activeTab === 'logs' && (
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <input type="text" value={logFilter} onChange={(e) => { setLogFilter(e.target.value); setLogPage(1) }} placeholder="按项目 ID 筛选..." className="w-full max-w-md rounded-xl shadow-sm transition-all" style={inputStyle} />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-4">
+            <input type="text" value={logFilter} onChange={(e) => { setLogFilter(e.target.value); setLogPage(1) }} placeholder="按项目 ID 筛选..." className="w-full max-w-xs rounded-xl shadow-sm transition-all" style={inputStyle} />
+            <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setLogPage(1) }} className="rounded-xl shadow-sm transition-all text-sm" style={inputStyle} />
+            <span className="text-sm" style={{ color: 'var(--text-dim)' }}>至</span>
+            <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setLogPage(1) }} className="rounded-xl shadow-sm transition-all text-sm" style={inputStyle} />
             <button
               onClick={() => {
                 const headers = ['时间', '操作表', '动作', '记录 ID']
@@ -229,6 +239,7 @@ export default function AdminPage() {
               <p className="text-sm" style={{ color: 'var(--text-dim)' }}>共 {logTotalCount} 条，第 {logPage} / {logTotalPages} 页</p>
               <div className="flex items-center space-x-2">
                 <button onClick={() => setLogPage(p => Math.max(1, p - 1))} disabled={logPage === 1} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronLeft className="w-4 h-4" /></button>
+                <input type="number" min="1" max={logTotalPages} value={logJumpPage} onChange={(e) => setLogJumpPage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(logJumpPage); if (p >= 1 && p <= logTotalPages) { setLogPage(p); setLogJumpPage('') } } }} placeholder={String(logPage)} className="w-14 text-center rounded-lg border text-sm py-1.5" style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }} />
                 <button onClick={() => setLogPage(p => Math.min(logTotalPages, p + 1))} disabled={logPage >= logTotalPages} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>

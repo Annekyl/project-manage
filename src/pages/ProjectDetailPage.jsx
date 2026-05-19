@@ -23,7 +23,7 @@ export default function ProjectDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: project, isLoading, error } = useProject(id)
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
   const [activeTab, setActiveTab] = useState('contract')
 
   if (isLoading) {
@@ -158,11 +158,11 @@ export default function ProjectDetailPage() {
       </div>
 
       <div>
-        {activeTab === 'contract' && <ContractTab project={project} isAdmin={isAdmin} />}
-        {activeTab === 'payment' && <PaymentTab project={project} isAdmin={isAdmin} />}
-        {activeTab === 'invoice' && <InvoiceTab project={project} isAdmin={isAdmin} />}
-        {activeTab === 'reimbursement' && <ReimbursementTab project={project} isAdmin={isAdmin} />}
-        {activeTab === 'closure' && <ClosureTab project={project} isAdmin={isAdmin} />}
+        {activeTab === 'contract' && <ContractTab project={project} isAdmin={isAdmin} currentUserId={user?.id} />}
+        {activeTab === 'payment' && <PaymentTab project={project} isAdmin={isAdmin} currentUserId={user?.id} />}
+        {activeTab === 'invoice' && <InvoiceTab project={project} isAdmin={isAdmin} currentUserId={user?.id} />}
+        {activeTab === 'reimbursement' && <ReimbursementTab project={project} isAdmin={isAdmin} currentUserId={user?.id} />}
+        {activeTab === 'closure' && <ClosureTab project={project} isAdmin={isAdmin} currentUserId={user?.id} />}
       </div>
     </div>
   )

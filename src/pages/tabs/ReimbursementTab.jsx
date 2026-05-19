@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 import { Plus, Check, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-export default function ReimbursementTab({ project, isAdmin }) {
+export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
   const reimbursements = project.reimbursements || []
   const addReimbursement = useAddReimbursement(project.id)
   const confirmReimbursement = useConfirmReimbursement(project.id)
@@ -18,7 +18,7 @@ export default function ReimbursementTab({ project, isAdmin }) {
   const [closureConfirm, setClosureConfirm] = useState(false)
   const [formData, setFormData] = useState({
     amount: '',
-    responsible_id: '',
+    responsible_id: currentUserId || '',
     responsible_name: '',
     recipient_type: 'teacher',
     recipient_name: '',

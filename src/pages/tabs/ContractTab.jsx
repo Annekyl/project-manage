@@ -7,7 +7,7 @@ import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import toast from 'react-hot-toast'
 
-export default function ContractTab({ project, isAdmin }) {
+export default function ContractTab({ project, isAdmin, currentUserId }) {
   const contract = project.contracts?.[0]
   const initContract = useInitContract()
   const updateContract = useUpdateContract(project.id)
@@ -28,27 +28,27 @@ export default function ContractTab({ project, isAdmin }) {
     if (contract) {
       setLocalData({
         draft: {
-          draft_responsible_id: contract.draft_responsible_id || '',
+          draft_responsible_id: contract.draft_responsible_id || currentUserId || '',
           draft_responsible_name: contract.draft_responsible_name || '',
           draft_confirmed_at: contract.draft_confirmed_at || '',
           draft_file_url: contract.draft_file_url || ''
         },
         stamp: {
-          stamp_responsible_id: contract.stamp_responsible_id || '',
+          stamp_responsible_id: contract.stamp_responsible_id || currentUserId || '',
           stamp_responsible_name: contract.stamp_responsible_name || '',
           stamp_completed_at: contract.stamp_completed_at || '',
           stamp_count: contract.stamp_count || '',
           stamp_scan_url: contract.stamp_scan_url || ''
         },
         send: {
-          send_responsible_id: contract.send_responsible_id || '',
+          send_responsible_id: contract.send_responsible_id || currentUserId || '',
           send_responsible_name: contract.send_responsible_name || '',
           sent_at: contract.sent_at || '',
           tracking_number: contract.tracking_number || '',
           courier: contract.courier || '顺丰'
         },
         receipt: {
-          receipt_responsible_id: contract.receipt_responsible_id || '',
+          receipt_responsible_id: contract.receipt_responsible_id || currentUserId || '',
           receipt_responsible_name: contract.receipt_responsible_name || '',
           customer_confirmed_at: contract.customer_confirmed_at || '',
           receipt_screenshot_url: contract.receipt_screenshot_url || '',
