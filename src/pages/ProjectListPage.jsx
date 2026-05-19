@@ -8,7 +8,7 @@ import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2 } from
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
-const PAGE_SIZE = 4
+const PAGE_SIZE = 10
 
 export default function ProjectListPage() {
   const [page, setPage] = useState(1)

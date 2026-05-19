@@ -7,7 +7,7 @@ import ProgressStepper from '../components/common/ProgressStepper'
 import { Search, FolderOpen, Clock, CheckCircle, User, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 
-const PAGE_SIZE = 4
+const PAGE_SIZE = 10
 
 export default function DashboardPage() {
   const [page, setPage] = useState(1)

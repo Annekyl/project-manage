@@ -16,6 +16,7 @@ export default function InvoiceTab({ project, isAdmin }) {
   const updateStatus = useUpdateProjectStatus(project.id)
 
   const [confirmModal, setConfirmModal] = useState(false)
+  const [unlockConfirm, setUnlockConfirm] = useState(false)
 
   const [localData, setLocalData] = useState({
     invoice_type: '',
@@ -217,7 +218,7 @@ export default function InvoiceTab({ project, isAdmin }) {
         {isLocked ? (
           isAdmin && (
             <button
-              onClick={() => updateInvoice.mutate({ invoiceId: invoice.id, updates: { invoice_locked: false } })}
+              onClick={() => setUnlockConfirm(true)}
               className="px-4 py-2 text-sm rounded-xl btn-transition"
               style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
             >
@@ -240,6 +241,16 @@ export default function InvoiceTab({ project, isAdmin }) {
         onConfirm={handleLock}
         onCancel={() => setConfirmModal(false)}
         message="发票类型一旦锁定不可修改，请确认信息无误。确认提交？"
+      />
+      <ConfirmModal
+        open={unlockConfirm}
+        title="确认解锁"
+        message="解锁后该环节将可以修改。确认解锁？"
+        onConfirm={() => {
+          updateInvoice.mutate({ invoiceId: invoice.id, updates: { invoice_locked: false } })
+          setUnlockConfirm(false)
+        }}
+        onCancel={() => setUnlockConfirm(false)}
       />
     </div>
   )

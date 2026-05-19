@@ -15,6 +15,7 @@ export default function ReimbursementTab({ project, isAdmin }) {
   const updateStatus = useUpdateProjectStatus(project.id)
 
   const [showForm, setShowForm] = useState(false)
+  const [closureConfirm, setClosureConfirm] = useState(false)
   const [formData, setFormData] = useState({
     amount: '',
     responsible_id: '',
@@ -76,10 +77,8 @@ export default function ReimbursementTab({ project, isAdmin }) {
 
   async function handleMoveToClosure() {
     if (!isFullyReimbursed) {
-      const confirmed = window.confirm(
-        `当前报销金额 ¥${totalReimbursed.toLocaleString()} 未达到项目总金额 ¥${totalAmount.toLocaleString()}，还差 ¥${(totalAmount - totalReimbursed).toLocaleString()}。确定要进入结题阶段吗？`
-      )
-      if (!confirmed) return
+      setClosureConfirm(true)
+      return
     }
     try {
       await updateStatus.mutateAsync('closure')
@@ -132,6 +131,21 @@ export default function ReimbursementTab({ project, isAdmin }) {
           >
             {isFullyReimbursed ? '进入结题阶段' : '进入结题阶段（报销未完成）'}
           </button>
+          <ConfirmModal
+            open={closureConfirm}
+            title="确认进入结题"
+            message={`当前报销金额 ¥${totalReimbursed.toLocaleString()} 未达到项目总金额 ¥${totalAmount.toLocaleString()}，还差 ¥${(totalAmount - totalReimbursed).toLocaleString()}。确定要进入结题阶段吗？`}
+            onConfirm={async () => {
+              setClosureConfirm(false)
+              try {
+                await updateStatus.mutateAsync('closure')
+                toast.success('已进入结题阶段')
+              } catch (error) {
+                toast.error('操作失败: ' + error.message)
+              }
+            }}
+            onCancel={() => setClosureConfirm(false)}
+          />
         </div>
       </div>
 

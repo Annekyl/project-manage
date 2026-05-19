@@ -15,6 +15,7 @@ export default function ClosureTab({ project, isAdmin }) {
   const updateStatus = useUpdateProjectStatus(project.id)
 
   const [confirmModal, setConfirmModal] = useState(false)
+  const [unlockConfirm, setUnlockConfirm] = useState(false)
 
   const [localData, setLocalData] = useState({
     responsible_id: '',
@@ -202,7 +203,7 @@ export default function ClosureTab({ project, isAdmin }) {
             )}
             {isAdmin && (
               <button
-                onClick={() => updateClosure.mutate({ closureId: closure.id, updates: { closure_locked: false } })}
+                onClick={() => setUnlockConfirm(true)}
                 className="px-4 py-2 text-sm rounded-xl btn-transition"
                 style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
               >
@@ -225,6 +226,16 @@ export default function ClosureTab({ project, isAdmin }) {
         open={confirmModal}
         onConfirm={handleLock}
         onCancel={() => setConfirmModal(false)}
+      />
+      <ConfirmModal
+        open={unlockConfirm}
+        title="确认解锁"
+        message="解锁后该环节将可以修改。确认解锁？"
+        onConfirm={() => {
+          updateClosure.mutate({ closureId: closure.id, updates: { closure_locked: false } })
+          setUnlockConfirm(false)
+        }}
+        onCancel={() => setUnlockConfirm(false)}
       />
     </div>
   )

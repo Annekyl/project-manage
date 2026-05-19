@@ -10,14 +10,7 @@ export function useProjects({ page = 1, pageSize = 4, search = '' } = {}) {
 
       let query = supabase
         .from('projects')
-        .select(`
-          *,
-          contracts(*),
-          payments(*),
-          invoices(*),
-          reimbursements(*),
-          closures(*)
-        `, { count: 'exact' })
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to)
 

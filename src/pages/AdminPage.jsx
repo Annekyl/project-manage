@@ -3,6 +3,7 @@ import { supabase } from '../utils/supabase'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { UserPlus, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
+import ConfirmModal from '../components/common/ConfirmModal'
 
 const PAGE_SIZE = 10
 
@@ -19,6 +20,7 @@ export default function AdminPage() {
   const [logPage, setLogPage] = useState(1)
   const [logTotalCount, setLogTotalCount] = useState(0)
   const [detailData, setDetailData] = useState(null)
+  const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: '', userName: '', newRole: '' })
 
   useEffect(() => { fetchUsers() }, [userPage])
   useEffect(() => { fetchLogs() }, [logPage, logFilter])
@@ -43,10 +45,16 @@ export default function AdminPage() {
     setLoading(false)
   }, [logPage, logFilter])
 
-  async function handleRoleChange(userId, newRole) {
+  function handleRoleChange(userId, userName, newRole) {
+    setRoleConfirm({ open: true, userId, userName, newRole })
+  }
+
+  async function confirmRoleChange() {
+    const { userId, newRole } = roleConfirm
     const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
     if (error) toast.error('更新失败: ' + error.message)
     else { toast.success('角色已更新'); fetchUsers() }
+    setRoleConfirm({ open: false, userId: '', userName: '', newRole: '' })
   }
 
   async function handleCreateUser(e) {
@@ -114,7 +122,7 @@ export default function AdminPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>{user.id.slice(0, 8)}...</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <select value={user.role} onChange={(e) => handleRoleChange(user.id, e.target.value)} className="rounded-lg shadow-sm text-sm transition-all" style={inputStyle}>
+                        <select value={user.role} onChange={(e) => handleRoleChange(user.id, user.name, e.target.value)} className="rounded-lg shadow-sm text-sm transition-all" style={inputStyle}>
                           <option value="member">成员</option>
                           <option value="admin">管理员</option>
                         </select>
@@ -203,6 +211,14 @@ export default function AdminPage() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        open={roleConfirm.open}
+        title="确认修改角色"
+        message={`确定将用户「${roleConfirm.userName}」的角色修改为${roleConfirm.newRole === 'admin' ? '管理员' : '成员'}？`}
+        onConfirm={confirmRoleChange}
+        onCancel={() => setRoleConfirm({ open: false, userId: '', userName: '', newRole: '' })}
+      />
 
       {/* 数据详情弹窗 */}
       {detailData !== null && (

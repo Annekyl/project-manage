@@ -15,6 +15,7 @@ export default function PaymentTab({ project, isAdmin }) {
   const updateStatus = useUpdateProjectStatus(project.id)
 
   const [confirmModal, setConfirmModal] = useState({ open: false, section: null })
+  const [unlockConfirm, setUnlockConfirm] = useState({ open: false, section: null })
 
   const [localData, setLocalData] = useState({
     payment: {},
@@ -167,7 +168,7 @@ export default function PaymentTab({ project, isAdmin }) {
           {isPaymentLocked ? (
             isAdmin && (
               <button
-                onClick={() => updatePayment.mutate({ paymentId: payment.id, updates: { payment_locked: false } })}
+                onClick={() => setUnlockConfirm({ open: true, section: 'payment' })}
                 className="px-4 py-2 text-sm rounded-xl btn-transition"
                 style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
               >
@@ -253,7 +254,7 @@ export default function PaymentTab({ project, isAdmin }) {
           {isClaimLocked ? (
             isAdmin && (
               <button
-                onClick={() => updatePayment.mutate({ paymentId: payment.id, updates: { claim_locked: false } })}
+                onClick={() => setUnlockConfirm({ open: true, section: 'claim' })}
                 className="px-4 py-2 text-sm rounded-xl btn-transition"
                 style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
               >
@@ -276,6 +277,17 @@ export default function PaymentTab({ project, isAdmin }) {
         open={confirmModal.open}
         onConfirm={() => handleLock(confirmModal.section)}
         onCancel={() => setConfirmModal({ open: false, section: null })}
+      />
+      <ConfirmModal
+        open={unlockConfirm.open}
+        title="确认解锁"
+        message="解锁后该环节将可以修改。确认解锁？"
+        onConfirm={() => {
+          const field = unlockConfirm.section === 'payment' ? 'payment_locked' : 'claim_locked'
+          updatePayment.mutate({ paymentId: payment.id, updates: { [field]: false } })
+          setUnlockConfirm({ open: false, section: null })
+        }}
+        onCancel={() => setUnlockConfirm({ open: false, section: null })}
       />
     </div>
   )
