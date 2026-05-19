@@ -32,7 +32,7 @@ export default function DashboardPage() {
   const totalCount = data?.totalCount || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['projectStats'],
     queryFn: async () => {
       const { count: total } = await supabase
@@ -79,8 +79,8 @@ export default function DashboardPage() {
     return null
   }
 
-  const statTotal = stats?.total || 0
-  const statCompleted = stats?.completed || 0
+  const statTotal = stats?.total ?? 0
+  const statCompleted = stats?.completed ?? 0
   const statInProgress = statTotal - statCompleted
 
   return (
@@ -96,7 +96,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-white/70">全部项目</p>
-              <p className="text-3xl font-bold text-white mt-1">{statTotal}</p>
+              <p className="text-3xl font-bold text-white mt-1">{statsLoading ? '-' : statTotal}</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
               <FolderOpen className="w-6 h-6 text-white" />
@@ -107,7 +107,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-white/70">进行中</p>
-              <p className="text-3xl font-bold text-white mt-1">{statInProgress}</p>
+              <p className="text-3xl font-bold text-white mt-1">{statsLoading ? '-' : statInProgress}</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
               <Clock className="w-6 h-6 text-white" />
@@ -118,7 +118,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-white/70">已完成</p>
-              <p className="text-3xl font-bold text-white mt-1">{statCompleted}</p>
+              <p className="text-3xl font-bold text-white mt-1">{statsLoading ? '-' : statCompleted}</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-white" />
