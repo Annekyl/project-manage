@@ -22,10 +22,9 @@ export function useUpdateProjectStatus(projectId) {
 export function isContractComplete(contract) {
   if (!contract) return false
   return (
-    contract.draft_locked &&
-    contract.stamp_locked &&
-    contract.send_locked &&
-    contract.receipt_locked
+    contract.audit_sign_locked &&
+    contract.stamp_upload_locked &&
+    contract.send_out_locked
   )
 }
 
@@ -39,6 +38,11 @@ export function isPaymentComplete(payment) {
 export function isInvoiceComplete(invoice) {
   if (!invoice) return false
   return invoice.invoice_locked
+}
+
+// 检查打款开票阶段是否完成（打款和开票都已锁定）
+export function isPaymentInvoiceComplete(payment, invoice) {
+  return isPaymentComplete(payment) && isInvoiceComplete(invoice)
 }
 
 // 检查报销阶段是否完成（所有报销记录都已锁定）

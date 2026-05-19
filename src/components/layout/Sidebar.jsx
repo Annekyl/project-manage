@@ -7,7 +7,7 @@ export default function Sidebar({ onClose }) {
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: '工作台' },
-    { to: '/projects', icon: FolderOpen, label: '项目列表' },
+    { to: '/projects', icon: FolderOpen, label: '项目填报' },
   ]
 
   if (isAdmin) {

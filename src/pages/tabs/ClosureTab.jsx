@@ -19,7 +19,6 @@ export default function ClosureTab({ project, isAdmin, currentUserId }) {
 
   const [localData, setLocalData] = useState({
     responsible_id: '',
-    responsible_name: '',
     status: 'pending',
     report_submitted_at: '',
     closed_at: '',
@@ -30,7 +29,6 @@ export default function ClosureTab({ project, isAdmin, currentUserId }) {
     if (closure) {
       setLocalData({
         responsible_id: closure.responsible_id || currentUserId || '',
-        responsible_name: closure.responsible_name || '',
         status: closure.status || 'pending',
         report_submitted_at: closure.report_submitted_at || '',
         closed_at: closure.closed_at || '',
@@ -103,23 +101,7 @@ export default function ClosureTab({ project, isAdmin, currentUserId }) {
           <UserSelect
             value={localData.responsible_id}
             onChange={(v) => handleLocalChange('responsible_id', v)}
-            disabled={isLocked}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-          <input
-            type="text"
-            value={localData.responsible_name}
-            onChange={(e) => handleLocalChange('responsible_name', e.target.value)}
-            disabled={isLocked}
-            placeholder="输入负责人姓名"
-            className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-            style={{
-              background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-              borderColor: 'var(--border)',
-              color: isLocked ? 'var(--text-dim)' : 'var(--text)',
-            }}
+            disabled={isLocked || !isAdmin}
           />
         </div>
         <div>
@@ -230,9 +212,12 @@ export default function ClosureTab({ project, isAdmin, currentUserId }) {
       <ConfirmModal
         open={unlockConfirm}
         title="确认解锁"
-        message="解锁后该环节将可以修改。确认解锁？"
-        onConfirm={() => {
+        message="解锁后该环节将可以修改，项目状态将回退。确认解锁？"
+        onConfirm={async () => {
           updateClosure.mutate({ closureId: closure.id, updates: { closure_locked: false } })
+          if (project.status !== 'closure') {
+            await updateStatus.mutateAsync('closure')
+          }
           setUnlockConfirm(false)
         }}
         onCancel={() => setUnlockConfirm(false)}

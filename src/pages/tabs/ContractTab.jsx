@@ -1,62 +1,67 @@
 import { useState, useEffect } from 'react'
 import { useInitContract, useUpdateContract, useLockContractSection, useUnlockContractSection } from '../../hooks/useContract'
-import { useUpdateProjectStatus, isContractComplete } from '../../hooks/useProjectStatus'
+import { useUpdateProjectStatus } from '../../hooks/useProjectStatus'
 import UserSelect from '../../components/common/UserSelect'
 import FileUpload from '../../components/common/FileUpload'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import toast from 'react-hot-toast'
 
-export default function ContractTab({ project, isAdmin, currentUserId }) {
+const STATUS_FLOW = {
+  sign_confirm: 'stamp_upload',
+  stamp_upload: 'send_out',
+  send_out: 'payment_invoice',
+}
+
+const SECTION_LABELS = {
+  audit_sign: '审核签收',
+  sign_confirm: '签收确认',
+  stamp_upload: '盖章上传',
+  send_out: '寄出',
+}
+
+export default function ContractTab({ project, section, isAdmin, currentUserId }) {
   const contract = project.contracts?.[0]
+
   const initContract = useInitContract()
   const updateContract = useUpdateContract(project.id)
   const lockSection = useLockContractSection(project.id)
   const unlockSection = useUnlockContractSection(project.id)
   const updateStatus = useUpdateProjectStatus(project.id)
 
-  const [confirmModal, setConfirmModal] = useState({ open: false, section: null })
+  const [confirmModal, setConfirmModal] = useState({ open: false, mode: null, target: null })
 
-  const [localData, setLocalData] = useState({
-    draft: {},
-    stamp: {},
-    send: {},
-    receipt: {}
-  })
+  const [auditData, setAuditData] = useState({})
+  const [signData, setSignData] = useState({})
+  const [stampData, setStampData] = useState({})
+  const [sendData, setSendData] = useState({})
 
   useEffect(() => {
-    if (contract) {
-      setLocalData({
-        draft: {
-          draft_responsible_id: contract.draft_responsible_id || currentUserId || '',
-          draft_responsible_name: contract.draft_responsible_name || '',
-          draft_confirmed_at: contract.draft_confirmed_at || '',
-          draft_file_url: contract.draft_file_url || ''
-        },
-        stamp: {
-          stamp_responsible_id: contract.stamp_responsible_id || currentUserId || '',
-          stamp_responsible_name: contract.stamp_responsible_name || '',
-          stamp_completed_at: contract.stamp_completed_at || '',
-          stamp_count: contract.stamp_count || '',
-          stamp_scan_url: contract.stamp_scan_url || ''
-        },
-        send: {
-          send_responsible_id: contract.send_responsible_id || currentUserId || '',
-          send_responsible_name: contract.send_responsible_name || '',
-          sent_at: contract.sent_at || '',
-          tracking_number: contract.tracking_number || '',
-          courier: contract.courier || '顺丰'
-        },
-        receipt: {
-          receipt_responsible_id: contract.receipt_responsible_id || currentUserId || '',
-          receipt_responsible_name: contract.receipt_responsible_name || '',
-          customer_confirmed_at: contract.customer_confirmed_at || '',
-          receipt_screenshot_url: contract.receipt_screenshot_url || '',
-          customer_confirm_screenshot_url: contract.customer_confirm_screenshot_url || ''
-        }
-      })
-    }
-  }, [contract])
+    if (!contract) return
+    setAuditData({
+      audit_sign_responsible_id: contract.audit_sign_responsible_id || currentUserId || '',
+      audit_sign_file_url: contract.audit_sign_file_url || '',
+      audit_sign_confirmed_at: contract.audit_sign_confirmed_at || '',
+    })
+    setSignData({
+      sign_confirm_responsible_id: contract.sign_confirm_responsible_id || currentUserId || '',
+      sign_screenshot_url: contract.sign_screenshot_url || '',
+      sign_confirm_screenshot_url: contract.sign_confirm_screenshot_url || '',
+      sign_confirmed_at: contract.sign_confirmed_at || '',
+    })
+    setStampData({
+      stamp_upload_responsible_id: contract.stamp_upload_responsible_id || currentUserId || '',
+      stamp_upload_count: contract.stamp_upload_count || '',
+      stamp_upload_scan_url: contract.stamp_upload_scan_url || '',
+      stamp_upload_completed_at: contract.stamp_upload_completed_at || '',
+    })
+    setSendData({
+      send_out_responsible_id: contract.send_out_responsible_id || currentUserId || '',
+      tracking_number: contract.tracking_number || '',
+      courier: contract.courier || '顺丰',
+      sent_at: contract.sent_at || '',
+    })
+  }, [contract, currentUserId])
 
   if (!contract) {
     return (
@@ -73,422 +78,238 @@ export default function ContractTab({ project, isAdmin, currentUserId }) {
     )
   }
 
-  function handleLocalChange(section, field, value) {
-    setLocalData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value
-      }
-    }))
-  }
-
-  async function handleLock(section) {
+  async function handleLock(sectionKey, data, nextStatus) {
     try {
-      await updateContract.mutateAsync({
-        contractId: contract.id,
-        updates: localData[section]
-      })
-      await lockSection.mutateAsync({ contractId: contract.id, section })
+      await updateContract.mutateAsync({ contractId: contract.id, updates: data })
+      await lockSection.mutateAsync({ contractId: contract.id, section: sectionKey })
 
-      const updatedContract = {
-        ...contract,
-        ...localData[section],
-        [`${section}_locked`]: true
-      }
-      if (isContractComplete(updatedContract)) {
-        await updateStatus.mutateAsync('payment')
-        toast.success('已锁定，合同阶段完成，进入打款阶段')
+      if (nextStatus) {
+        await updateStatus.mutateAsync(nextStatus)
+        const nextLabel = SECTION_LABELS[nextStatus] || '打款开票'
+        toast.success(`已锁定，进入${nextLabel}`)
       } else {
         toast.success('已锁定')
       }
-
-      setConfirmModal({ open: false, section: null })
+      setConfirmModal({ open: false, mode: null, target: null })
     } catch (error) {
       toast.error('操作失败: ' + error.message)
     }
   }
 
-  function handleUnlock(section) {
+  function handleUnlock(unlockTarget) {
+    const prevStatus = {
+      audit_sign: 'audit_sign',
+      sign_confirm: 'audit_sign',
+      stamp_upload: 'audit_sign',
+      send_out: 'stamp_upload',
+    }
     unlockSection.mutate(
-      { contractId: contract.id, section },
-      { onSuccess: () => toast.success('已解锁') }
+      { contractId: contract.id, section: unlockTarget },
+      {
+        onSuccess: async () => {
+          await updateStatus.mutateAsync(prevStatus[unlockTarget])
+          toast.success('已解锁')
+          setConfirmModal({ open: false, mode: null, target: null })
+        }
+      }
     )
   }
 
-  const isDraftLocked = contract.draft_locked
-  const isStampLocked = contract.stamp_locked
-  const isSendLocked = contract.send_locked
-  const isReceiptLocked = contract.receipt_locked
+  // 审核签收 tab：显示两个独立区域
+  if (section === 'audit_sign') {
+    const isAuditLocked = contract.audit_sign_locked
+    const isSignLocked = contract.sign_locked
 
-  return (
-    <div className="space-y-6">
-      <ContractSection
-        title="合同定稿"
-        locked={isDraftLocked}
-        hasData={!!contract.draft_responsible_id || !!localData.draft.draft_responsible_id}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
-            <UserSelect
-              value={localData.draft.draft_responsible_id}
-              onChange={(v) => handleLocalChange('draft', 'draft_responsible_id', v)}
-              disabled={isDraftLocked}
-            />
+    return (
+      <div className="space-y-6">
+        {/* 审核签收 */}
+        <ContractSection title="审核签收" locked={isAuditLocked} hasData={!!contract.audit_sign_responsible_id || !!auditData.audit_sign_responsible_id}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
+              <UserSelect value={auditData.audit_sign_responsible_id} onChange={(v) => setAuditData(p => ({ ...p, audit_sign_responsible_id: v }))} disabled={isAuditLocked || !isAdmin} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>审核时间</label>
+              <input type="datetime-local" value={auditData.audit_sign_confirmed_at?.slice(0, 16) || ''} onChange={(e) => setAuditData(p => ({ ...p, audit_sign_confirmed_at: e.target.value }))} disabled={isAuditLocked} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={{ background: isAuditLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isAuditLocked ? 'var(--text-dim)' : 'var(--text)' }} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-            <input
-              type="text"
-              value={localData.draft.draft_responsible_name}
-              onChange={(e) => handleLocalChange('draft', 'draft_responsible_name', e.target.value)}
-              disabled={isDraftLocked}
-              placeholder="输入负责人姓名"
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isDraftLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isDraftLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>合同文件</label>
+            <FileUpload value={auditData.audit_sign_file_url} onChange={(v) => setAuditData(p => ({ ...p, audit_sign_file_url: v }))} folder={`contracts/${project.id}/audit_sign`} disabled={isAuditLocked} />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>定稿时间</label>
-            <input
-              type="datetime-local"
-              value={localData.draft.draft_confirmed_at?.slice(0, 16) || ''}
-              onChange={(e) => handleLocalChange('draft', 'draft_confirmed_at', e.target.value)}
-              disabled={isDraftLocked}
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isDraftLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isDraftLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>合同文件</label>
-          <FileUpload
-            value={localData.draft.draft_file_url}
-            onChange={(v) => handleLocalChange('draft', 'draft_file_url', v)}
-            folder={`contracts/${project.id}/draft`}
-            disabled={isDraftLocked}
-          />
-        </div>
-        <div className="mt-4 flex justify-end space-x-2">
-          {isDraftLocked ? (
-            isAdmin && (
-              <button
-                onClick={() => handleUnlock('draft')}
-                className="px-4 py-2 text-sm rounded-xl btn-transition"
-                style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
-              >
-                解锁
+          <div className="mt-4 flex justify-end">
+            {isAuditLocked ? (
+              isAdmin && (
+                <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'audit_sign' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
+                  解锁
+                </button>
+              )
+            ) : (
+              <button onClick={() => setConfirmModal({ open: true, mode: 'lock', target: 'audit_sign' })} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
+                提交并锁定
               </button>
-            )
-          ) : (
-            <button
-              onClick={() => setConfirmModal({ open: true, section: 'draft' })}
-              className="px-4 py-2 text-sm text-white rounded-xl btn-transition"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              提交并锁定
-            </button>
-          )}
-        </div>
-      </ContractSection>
+            )}
+          </div>
+        </ContractSection>
 
-      <ContractSection
-        title="合同盖章"
-        locked={isStampLocked}
-        hasData={!!contract.stamp_responsible_id || !!localData.stamp.stamp_responsible_id}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
-            <UserSelect
-              value={localData.stamp.stamp_responsible_id}
-              onChange={(v) => handleLocalChange('stamp', 'stamp_responsible_id', v)}
-              disabled={isStampLocked}
-            />
+        {/* 签收确认 */}
+        <ContractSection title="签收确认" locked={isSignLocked} hasData={!!contract.sign_confirm_responsible_id || !!signData.sign_confirm_responsible_id}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>签收确认人</label>
+              <UserSelect value={signData.sign_confirm_responsible_id} onChange={(v) => setSignData(p => ({ ...p, sign_confirm_responsible_id: v }))} disabled={isSignLocked || !isAdmin} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>客户确认时间</label>
+              <input type="datetime-local" value={signData.sign_confirmed_at?.slice(0, 16) || ''} onChange={(e) => setSignData(p => ({ ...p, sign_confirmed_at: e.target.value }))} disabled={isSignLocked} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={{ background: isSignLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isSignLocked ? 'var(--text-dim)' : 'var(--text)' }} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-            <input
-              type="text"
-              value={localData.stamp.stamp_responsible_name}
-              onChange={(e) => handleLocalChange('stamp', 'stamp_responsible_name', e.target.value)}
-              disabled={isStampLocked}
-              placeholder="输入负责人姓名"
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isStampLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isStampLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>快递签收截图</label>
+              <FileUpload value={signData.sign_screenshot_url} onChange={(v) => setSignData(p => ({ ...p, sign_screenshot_url: v }))} folder={`contracts/${project.id}/sign`} disabled={isSignLocked} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>客户确认聊天截图</label>
+              <FileUpload value={signData.sign_confirm_screenshot_url} onChange={(v) => setSignData(p => ({ ...p, sign_confirm_screenshot_url: v }))} folder={`contracts/${project.id}/sign`} disabled={isSignLocked} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>盖章时间</label>
-            <input
-              type="datetime-local"
-              value={localData.stamp.stamp_completed_at?.slice(0, 16) || ''}
-              onChange={(e) => handleLocalChange('stamp', 'stamp_completed_at', e.target.value)}
-              disabled={isStampLocked}
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isStampLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isStampLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>合同份数</label>
-            <input
-              type="number"
-              value={localData.stamp.stamp_count}
-              onChange={(e) => handleLocalChange('stamp', 'stamp_count', e.target.value)}
-              disabled={isStampLocked}
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isStampLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isStampLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>盖章扫描件</label>
-          <FileUpload
-            value={localData.stamp.stamp_scan_url}
-            onChange={(v) => handleLocalChange('stamp', 'stamp_scan_url', v)}
-            folder={`contracts/${project.id}/stamp`}
-            disabled={isStampLocked}
-          />
-        </div>
-        <div className="mt-4 flex justify-end space-x-2">
-          {isStampLocked ? (
-            isAdmin && (
-              <button
-                onClick={() => handleUnlock('stamp')}
-                className="px-4 py-2 text-sm rounded-xl btn-transition"
-                style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
-              >
-                解锁
+          <div className="mt-4 flex justify-end">
+            {isSignLocked ? (
+              isAdmin && (
+                <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'sign_confirm' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
+                  解锁
+                </button>
+              )
+            ) : (
+              <button onClick={() => setConfirmModal({ open: true, mode: 'lock', target: 'sign_confirm' })} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
+                提交并锁定
               </button>
-            )
-          ) : (
-            <button
-              onClick={() => setConfirmModal({ open: true, section: 'stamp' })}
-              className="px-4 py-2 text-sm text-white rounded-xl btn-transition"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              提交并锁定
-            </button>
-          )}
-        </div>
-      </ContractSection>
+            )}
+          </div>
+        </ContractSection>
 
-      <ContractSection
-        title="合同寄送"
-        locked={isSendLocked}
-        hasData={!!contract.send_responsible_id || !!localData.send.send_responsible_id}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
-            <UserSelect
-              value={localData.send.send_responsible_id}
-              onChange={(v) => handleLocalChange('send', 'send_responsible_id', v)}
-              disabled={isSendLocked}
-            />
+        <ConfirmModal
+          open={confirmModal.open}
+          title={confirmModal.mode === 'unlock' ? '确认解锁' : '确认操作'}
+          message={confirmModal.mode === 'unlock' ? '解锁后该环节将可以修改，项目状态将回退。确认解锁？' : '提交后该环节将锁定，无法自行修改。确认提交？'}
+          onConfirm={() => {
+            if (confirmModal.mode === 'unlock') {
+              handleUnlock(confirmModal.target)
+            } else if (confirmModal.target === 'audit_sign') {
+              handleLock('audit_sign', auditData, null)
+            } else {
+              handleLock('sign_confirm', signData, 'stamp_upload')
+            }
+          }}
+          onCancel={() => setConfirmModal({ open: false, mode: null, target: null })}
+        />
+      </div>
+    )
+  }
+
+  // 盖章上传
+  if (section === 'stamp_upload') {
+    const isLocked = contract.stamp_upload_locked
+    return (
+      <div className="space-y-6">
+        <ContractSection title="盖章上传" locked={isLocked} hasData={!!contract.stamp_upload_responsible_id || !!stampData.stamp_upload_responsible_id}>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
+              <UserSelect value={stampData.stamp_upload_responsible_id} onChange={(v) => setStampData(p => ({ ...p, stamp_upload_responsible_id: v }))} disabled={isLocked || !isAdmin} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>盖章时间</label>
+              <input type="datetime-local" value={stampData.stamp_upload_completed_at?.slice(0, 16) || ''} onChange={(e) => setStampData(p => ({ ...p, stamp_upload_completed_at: e.target.value }))} disabled={isLocked} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={{ background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isLocked ? 'var(--text-dim)' : 'var(--text)' }} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>合同份数</label>
+              <input type="number" value={stampData.stamp_upload_count} onChange={(e) => setStampData(p => ({ ...p, stamp_upload_count: e.target.value }))} disabled={isLocked} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={{ background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isLocked ? 'var(--text-dim)' : 'var(--text)' }} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-            <input
-              type="text"
-              value={localData.send.send_responsible_name}
-              onChange={(e) => handleLocalChange('send', 'send_responsible_name', e.target.value)}
-              disabled={isSendLocked}
-              placeholder="输入负责人姓名"
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isSendLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isSendLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>盖章扫描件</label>
+            <FileUpload value={stampData.stamp_upload_scan_url} onChange={(v) => setStampData(p => ({ ...p, stamp_upload_scan_url: v }))} folder={`contracts/${project.id}/stamp_upload`} disabled={isLocked} />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>寄出时间</label>
-            <input
-              type="datetime-local"
-              value={localData.send.sent_at?.slice(0, 16) || ''}
-              onChange={(e) => handleLocalChange('send', 'sent_at', e.target.value)}
-              disabled={isSendLocked}
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isSendLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isSendLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>快递单号</label>
-            <input
-              type="text"
-              value={localData.send.tracking_number}
-              onChange={(e) => handleLocalChange('send', 'tracking_number', e.target.value)}
-              disabled={isSendLocked}
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isSendLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isSendLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>快递公司</label>
-            <input
-              type="text"
-              value={localData.send.courier}
-              onChange={(e) => handleLocalChange('send', 'courier', e.target.value)}
-              disabled={isSendLocked}
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isSendLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isSendLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end space-x-2">
-          {isSendLocked ? (
-            isAdmin && (
-              <button
-                onClick={() => handleUnlock('send')}
-                className="px-4 py-2 text-sm rounded-xl btn-transition"
-                style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
-              >
-                解锁
+          <div className="mt-4 flex justify-end">
+            {isLocked ? (
+              isAdmin && (
+                <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'stamp_upload' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
+                  解锁
+                </button>
+              )
+            ) : (
+              <button onClick={() => handleLock('stamp_upload', stampData, 'send_out')} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
+                提交并锁定
               </button>
-            )
-          ) : (
-            <button
-              onClick={() => setConfirmModal({ open: true, section: 'send' })}
-              className="px-4 py-2 text-sm text-white rounded-xl btn-transition"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              提交并锁定
-            </button>
-          )}
-        </div>
-      </ContractSection>
+            )}
+          </div>
+        </ContractSection>
 
-      <ContractSection
-        title="签收确认"
-        locked={isReceiptLocked}
-        hasData={!!contract.receipt_responsible_id || !!localData.receipt.receipt_responsible_id}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
-            <UserSelect
-              value={localData.receipt.receipt_responsible_id}
-              onChange={(v) => handleLocalChange('receipt', 'receipt_responsible_id', v)}
-              disabled={isReceiptLocked}
-            />
+        <ConfirmModal
+          open={confirmModal.open}
+          title="确认解锁"
+          message="解锁后该环节将可以修改，项目状态将回退。确认解锁？"
+          onConfirm={() => handleUnlock('stamp_upload')}
+          onCancel={() => setConfirmModal({ open: false, mode: null, target: null })}
+        />
+      </div>
+    )
+  }
+
+  // 寄出
+  if (section === 'send_out') {
+    const isLocked = contract.send_out_locked
+    return (
+      <div className="space-y-6">
+        <ContractSection title="寄出" locked={isLocked} hasData={!!contract.send_out_responsible_id || !!sendData.send_out_responsible_id}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
+              <UserSelect value={sendData.send_out_responsible_id} onChange={(v) => setSendData(p => ({ ...p, send_out_responsible_id: v }))} disabled={isLocked || !isAdmin} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>寄出时间</label>
+              <input type="datetime-local" value={sendData.sent_at?.slice(0, 16) || ''} onChange={(e) => setSendData(p => ({ ...p, sent_at: e.target.value }))} disabled={isLocked} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={{ background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isLocked ? 'var(--text-dim)' : 'var(--text)' }} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>快递单号</label>
+              <input type="text" value={sendData.tracking_number} onChange={(e) => setSendData(p => ({ ...p, tracking_number: e.target.value }))} disabled={isLocked} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={{ background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isLocked ? 'var(--text-dim)' : 'var(--text)' }} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>快递公司</label>
+              <input type="text" value={sendData.courier} onChange={(e) => setSendData(p => ({ ...p, courier: e.target.value }))} disabled={isLocked} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={{ background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isLocked ? 'var(--text-dim)' : 'var(--text)' }} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-            <input
-              type="text"
-              value={localData.receipt.receipt_responsible_name}
-              onChange={(e) => handleLocalChange('receipt', 'receipt_responsible_name', e.target.value)}
-              disabled={isReceiptLocked}
-              placeholder="输入负责人姓名"
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isReceiptLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isReceiptLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>客户确认时间</label>
-            <input
-              type="datetime-local"
-              value={localData.receipt.customer_confirmed_at?.slice(0, 16) || ''}
-              onChange={(e) => handleLocalChange('receipt', 'customer_confirmed_at', e.target.value)}
-              disabled={isReceiptLocked}
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isReceiptLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isReceiptLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
-            />
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>快递签收截图</label>
-            <FileUpload
-              value={localData.receipt.receipt_screenshot_url}
-              onChange={(v) => handleLocalChange('receipt', 'receipt_screenshot_url', v)}
-              folder={`contracts/${project.id}/receipt`}
-              disabled={isReceiptLocked}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>客户确认聊天截图</label>
-            <FileUpload
-              value={localData.receipt.customer_confirm_screenshot_url}
-              onChange={(v) => handleLocalChange('receipt', 'customer_confirm_screenshot_url', v)}
-              folder={`contracts/${project.id}/receipt`}
-              disabled={isReceiptLocked}
-            />
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end space-x-2">
-          {isReceiptLocked ? (
-            isAdmin && (
-              <button
-                onClick={() => handleUnlock('receipt')}
-                className="px-4 py-2 text-sm rounded-xl btn-transition"
-                style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
-              >
-                解锁
+          <div className="mt-4 flex justify-end">
+            {isLocked ? (
+              isAdmin && (
+                <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'send_out' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
+                  解锁
+                </button>
+              )
+            ) : (
+              <button onClick={() => handleLock('send_out', sendData, 'payment_invoice')} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
+                提交并锁定
               </button>
-            )
-          ) : (
-            <button
-              onClick={() => setConfirmModal({ open: true, section: 'receipt' })}
-              className="px-4 py-2 text-sm text-white rounded-xl btn-transition"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              提交并锁定
-            </button>
-          )}
-        </div>
-      </ContractSection>
+            )}
+          </div>
+        </ContractSection>
 
-      <ConfirmModal
-        open={confirmModal.open}
-        onConfirm={() => handleLock(confirmModal.section)}
-        onCancel={() => setConfirmModal({ open: false, section: null })}
-      />
-    </div>
-  )
+        <ConfirmModal
+          open={confirmModal.open}
+          title="确认解锁"
+          message="解锁后该环节将可以修改，项目状态将回退。确认解锁？"
+          onConfirm={() => handleUnlock('send_out')}
+          onCancel={() => setConfirmModal({ open: false, mode: null, target: null })}
+        />
+      </div>
+    )
+  }
+
+  return null
 }
 
 function ContractSection({ title, locked, hasData, children }) {

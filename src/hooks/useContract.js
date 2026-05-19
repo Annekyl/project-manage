@@ -40,7 +40,7 @@ export function useLockContractSection(projectId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ contractId, section }) => {
-      // section: 'draft' | 'stamp' | 'send' | 'receipt'
+      // section: 'audit_sign' | 'stamp_upload' | 'send_out'
       const { error } = await supabase
         .from('contracts')
         .update({ [`${section}_locked`]: true })

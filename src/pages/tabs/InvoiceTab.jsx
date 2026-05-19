@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useInitInvoice, useUpdateInvoice, useLockInvoice } from '../../hooks/useInvoice'
-import { useUpdateProjectStatus, isInvoiceComplete } from '../../hooks/useProjectStatus'
+import { useUpdateProjectStatus, isPaymentInvoiceComplete } from '../../hooks/useProjectStatus'
 import UserSelect from '../../components/common/UserSelect'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/common/ConfirmModal'
@@ -22,7 +22,6 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
     invoice_type: '',
     invoice_amount: '',
     responsible_id: '',
-    responsible_name: '',
     preview_sent_at: '',
     customer_confirmed_at: '',
     issued_at: '',
@@ -35,7 +34,6 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
         invoice_type: invoice.invoice_type || '',
         invoice_amount: invoice.invoice_amount || '',
         responsible_id: invoice.responsible_id || currentUserId || '',
-        responsible_name: invoice.responsible_name || '',
         preview_sent_at: invoice.preview_sent_at || '',
         customer_confirmed_at: invoice.customer_confirmed_at || '',
         issued_at: invoice.issued_at || '',
@@ -74,8 +72,13 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
       })
       await lockInvoice.mutateAsync(invoice.id)
 
-      await updateStatus.mutateAsync('reimbursement')
-      toast.success('已锁定，开票阶段完成，进入报销阶段')
+      const payment = project.payments?.[0]
+      if (isPaymentInvoiceComplete(payment, { ...invoice, ...localData, invoice_locked: true })) {
+        await updateStatus.mutateAsync('reimbursement')
+        toast.success('已锁定，打款开票阶段完成，进入报销阶段')
+      } else {
+        toast.success('已锁定，等待打款部分完成')
+      }
       setConfirmModal(false)
     } catch (error) {
       toast.error('操作失败: ' + error.message)
@@ -133,23 +136,7 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
           <UserSelect
             value={localData.responsible_id}
             onChange={(v) => handleLocalChange('responsible_id', v)}
-            disabled={isLocked}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-          <input
-            type="text"
-            value={localData.responsible_name}
-            onChange={(e) => handleLocalChange('responsible_name', e.target.value)}
-            disabled={isLocked}
-            placeholder="输入负责人姓名"
-            className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-            style={{
-              background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-              borderColor: 'var(--border)',
-              color: isLocked ? 'var(--text-dim)' : 'var(--text)',
-            }}
+            disabled={isLocked || !isAdmin}
           />
         </div>
         <div>
@@ -245,9 +232,12 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
       <ConfirmModal
         open={unlockConfirm}
         title="确认解锁"
-        message="解锁后该环节将可以修改。确认解锁？"
-        onConfirm={() => {
+        message="解锁后该环节将可以修改，项目状态将回退。确认解锁？"
+        onConfirm={async () => {
           updateInvoice.mutate({ invoiceId: invoice.id, updates: { invoice_locked: false } })
+          if (project.status !== 'payment_invoice') {
+            await updateStatus.mutateAsync('payment_invoice')
+          }
           setUnlockConfirm(false)
         }}
         onCancel={() => setUnlockConfirm(false)}

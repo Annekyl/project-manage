@@ -337,10 +337,6 @@ export default function ProjectListPage() {
             <input type="text" value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目负责人</label>
-            <input type="text" value={formData.company_contact} onChange={(e) => setFormData({ ...formData, company_contact: e.target.value })} placeholder="请输入负责人姓名" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-          </div>
-          <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
             <input type="number" min="0" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>

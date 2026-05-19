@@ -6,7 +6,7 @@ import { useUsers } from '../hooks/useUsers'
 import { supabase } from '../utils/supabase'
 import ProgressStepper from '../components/common/ProgressStepper'
 import Pagination from '../components/common/Pagination'
-import { Search, User } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { SkeletonCard } from '../components/common/Skeleton'
 import { statusLabels } from '../utils/constants'
 import { format } from 'date-fns'
@@ -53,31 +53,25 @@ export default function DashboardPage() {
   const userMap = {}
   users.forEach(u => { userMap[u.id] = u.name })
 
-  function getResponsibleName(project) {
+  function getStageResponsibles(project) {
     const contract = project.contracts?.[0]
     const payment = project.payments?.[0]
     const invoice = project.invoices?.[0]
     const closure = project.closures?.[0]
 
-    switch (project.status) {
-      case 'contract':
-        if (!contract?.draft_locked) return contract?.draft_responsible_name || contract?.draft_responsible_id
-        if (!contract?.stamp_locked) return contract?.stamp_responsible_name || contract?.stamp_responsible_id
-        if (!contract?.send_locked) return contract?.send_responsible_name || contract?.send_responsible_id
-        if (!contract?.receipt_locked) return contract?.receipt_responsible_name || contract?.receipt_responsible_id
-        break
-      case 'payment':
-        if (!payment?.payment_locked) return payment?.claim_responsible_name || payment?.claim_responsible_id
-        break
-      case 'invoice':
-        if (!invoice?.invoice_locked) return invoice?.responsible_name || invoice?.responsible_id
-        break
-      case 'reimbursement':
-        return project.reimbursements?.[0]?.responsible_name || project.reimbursements?.[0]?.responsible_id
-      case 'closure':
-        return closure?.responsible_name || closure?.responsible_id
+    function resolve(idOrName) {
+      if (!idOrName) return null
+      return userMap[idOrName] || idOrName
     }
-    return null
+
+    return [
+      { key: 'audit_sign', label: '审核签收', name: resolve(contract?.audit_sign_responsible_name || contract?.audit_sign_responsible_id) },
+      { key: 'stamp_upload', label: '盖章上传', name: resolve(contract?.stamp_upload_responsible_name || contract?.stamp_upload_responsible_id) },
+      { key: 'send_out', label: '寄出', name: resolve(contract?.send_out_responsible_name || contract?.send_out_responsible_id) },
+      { key: 'payment_invoice', label: '打款开票', name: resolve(payment?.claim_responsible_name || payment?.claim_responsible_id || invoice?.responsible_name || invoice?.responsible_id) },
+      { key: 'reimbursement', label: '报销', name: resolve(project.reimbursements?.[0]?.responsible_name || project.reimbursements?.[0]?.responsible_id) },
+      { key: 'closure', label: '结题', name: resolve(closure?.responsible_name || closure?.responsible_id) },
+    ]
   }
 
   const statTotal = stats?.total ?? 0
@@ -160,10 +154,7 @@ export default function DashboardPage() {
                 0
               ) || 0
 
-              const responsibleId = getResponsibleName(project)
-              const responsibleName = responsibleId
-                ? (userMap[responsibleId] || responsibleId)
-                : '未指定'
+              const stageResponsibles = getStageResponsibles(project)
 
               return (
                 <div
@@ -176,9 +167,6 @@ export default function DashboardPage() {
                     <div>
                       <h3 className="font-semibold" style={{ color: 'var(--text-bright)' }}>{project.name}</h3>
                       <p className="text-sm" style={{ color: 'var(--text-dim)' }}>{project.company_name}</p>
-                      {project.company_contact && (
-                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>负责人: {project.company_contact}</p>
-                      )}
                     </div>
                     <span className="px-2.5 py-1 text-xs font-medium rounded-full" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                       {statusLabels[project.status]}
@@ -189,18 +177,26 @@ export default function DashboardPage() {
                     <ProgressStepper currentStatus={project.status} />
                   </div>
 
-                  <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center" style={{ color: 'var(--text-dim)' }}>
-                      <User className="w-4 h-4 mr-1" />
-                      <span>当前责任人: {responsibleName}</span>
-                    </div>
-                    <div style={{ color: 'var(--text-dim)' }}>
-                      ¥{project.total_amount?.toLocaleString() || '0'}
-                    </div>
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs mb-3">
+                    {stageResponsibles.map((s) => {
+                      const STAGE_ORDER = ['audit_sign', 'stamp_upload', 'send_out', 'payment_invoice', 'reimbursement', 'closure']
+                      const currentIdx = STAGE_ORDER.indexOf(project.status)
+                      const stageIdx = STAGE_ORDER.indexOf(s.key)
+                      const isCurrent = s.key === project.status
+                      const isPast = stageIdx < currentIdx
+                      return (
+                        <div key={s.key} className="flex items-center truncate">
+                          <span style={{ color: isCurrent ? 'var(--accent)' : isPast ? 'var(--text-dim)' : 'var(--text-muted)' }}>
+                            {s.label}: {s.name || '未指定'}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
 
-                  <div className="mt-2 flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
                     <span>已报销: ¥{totalReimbursed.toLocaleString()}</span>
+                    <span>¥{project.total_amount?.toLocaleString() || '0'}</span>
                     <span>{format(new Date(project.created_at), 'yyyy-MM-dd')}</span>
                   </div>
                 </div>

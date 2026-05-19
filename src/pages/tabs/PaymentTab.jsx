@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useInitPayment, useUpdatePayment, useLockPayment } from '../../hooks/usePayment'
-import { useUpdateProjectStatus, isPaymentComplete } from '../../hooks/useProjectStatus'
+import { useUpdateProjectStatus, isPaymentComplete, isPaymentInvoiceComplete } from '../../hooks/useProjectStatus'
 import UserSelect from '../../components/common/UserSelect'
 import FileUpload from '../../components/common/FileUpload'
 import StatusBadge from '../../components/common/StatusBadge'
@@ -26,6 +26,7 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
     if (payment) {
       setLocalData({
         payment: {
+          payment_responsible_id: payment.payment_responsible_id || currentUserId || '',
           payment_amount: payment.payment_amount || '',
           payment_screenshot_url: payment.payment_screenshot_url || '',
           bank_flow_number: payment.bank_flow_number || '',
@@ -33,7 +34,6 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
         },
         claim: {
           claim_responsible_id: payment.claim_responsible_id || currentUserId || '',
-          claim_responsible_name: payment.claim_responsible_name || '',
           claimed_at: payment.claimed_at || '',
           virtual_account_confirmed: payment.virtual_account_confirmed || false
         }
@@ -80,8 +80,13 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
         [`${section}_locked`]: true
       }
       if (isPaymentComplete(updatedPayment)) {
-        await updateStatus.mutateAsync('invoice')
-        toast.success('已锁定，打款阶段完成，进入开票阶段')
+        const invoice = project.invoices?.[0]
+        if (isPaymentInvoiceComplete(updatedPayment, invoice)) {
+          await updateStatus.mutateAsync('reimbursement')
+          toast.success('已锁定，打款开票阶段完成，进入报销阶段')
+        } else {
+          toast.success('已锁定，等待开票部分完成')
+        }
       } else {
         toast.success('已锁定')
       }
@@ -104,7 +109,15 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
           <StatusBadge locked={isPaymentLocked} hasData={!!payment.payment_amount || !!localData.payment.payment_amount} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
+            <UserSelect
+              value={localData.payment.payment_responsible_id}
+              onChange={(v) => handleLocalChange('payment', 'payment_responsible_id', v)}
+              disabled={isPaymentLocked || !isAdmin}
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>打款金额 (元)</label>
             <input
@@ -200,23 +213,7 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
             <UserSelect
               value={localData.claim.claim_responsible_id}
               onChange={(v) => handleLocalChange('claim', 'claim_responsible_id', v)}
-              disabled={isClaimLocked}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-            <input
-              type="text"
-              value={localData.claim.claim_responsible_name}
-              onChange={(e) => handleLocalChange('claim', 'claim_responsible_name', e.target.value)}
-              disabled={isClaimLocked}
-              placeholder="输入负责人姓名"
-              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
-              style={{
-                background: isClaimLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                color: isClaimLocked ? 'var(--text-dim)' : 'var(--text)',
-              }}
+              disabled={isClaimLocked || !isAdmin}
             />
           </div>
           <div>
@@ -281,10 +278,13 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
       <ConfirmModal
         open={unlockConfirm.open}
         title="确认解锁"
-        message="解锁后该环节将可以修改。确认解锁？"
-        onConfirm={() => {
+        message="解锁后该环节将可以修改，项目状态将回退。确认解锁？"
+        onConfirm={async () => {
           const field = unlockConfirm.section === 'payment' ? 'payment_locked' : 'claim_locked'
           updatePayment.mutate({ paymentId: payment.id, updates: { [field]: false } })
+          if (project.status !== 'payment_invoice') {
+            await updateStatus.mutateAsync('payment_invoice')
+          }
           setUnlockConfirm({ open: false, section: null })
         }}
         onCancel={() => setUnlockConfirm({ open: false, section: null })}

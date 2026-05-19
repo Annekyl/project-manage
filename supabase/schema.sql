@@ -39,8 +39,8 @@ CREATE TABLE public.projects (
   company_name   TEXT NOT NULL,
   company_contact TEXT,
   total_amount   NUMERIC(12,2),
-  status         TEXT NOT NULL DEFAULT 'contract'
-                 CHECK (status IN ('contract','payment','invoice','reimbursement','closure','completed')),
+  status         TEXT NOT NULL DEFAULT 'audit_sign'
+                 CHECK (status IN ('audit_sign','stamp_upload','send_out','payment_invoice','reimbursement','closure','completed')),
   created_by     UUID REFERENCES public.profiles(id),
   created_at     TIMESTAMPTZ DEFAULT NOW(),
   updated_at     TIMESTAMPTZ DEFAULT NOW()
@@ -53,32 +53,32 @@ CREATE TABLE public.contracts (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id  UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
 
-  -- 定稿
-  draft_responsible_id  UUID REFERENCES public.profiles(id),
-  draft_file_url        TEXT,
-  draft_confirmed_at    TIMESTAMPTZ,
-  draft_locked          BOOLEAN NOT NULL DEFAULT FALSE,
+  -- 审核签收
+  audit_sign_responsible_id  UUID REFERENCES public.profiles(id),
+  audit_sign_file_url        TEXT,
+  audit_sign_confirmed_at    TIMESTAMPTZ,
+  audit_sign_locked          BOOLEAN NOT NULL DEFAULT FALSE,
 
-  -- 盖章
-  stamp_responsible_id  UUID REFERENCES public.profiles(id),
-  stamp_count           INTEGER,
-  stamp_scan_url        TEXT,
-  stamp_completed_at    TIMESTAMPTZ,
-  stamp_locked          BOOLEAN NOT NULL DEFAULT FALSE,
+  -- 签收确认
+  sign_confirm_responsible_id       UUID REFERENCES public.profiles(id),
+  sign_screenshot_url               TEXT,
+  sign_confirm_screenshot_url       TEXT,
+  sign_confirmed_at                 TIMESTAMPTZ,
+  sign_locked                       BOOLEAN NOT NULL DEFAULT FALSE,
 
-  -- 寄送
-  send_responsible_id   UUID REFERENCES public.profiles(id),
-  tracking_number       TEXT,
-  courier               TEXT DEFAULT '顺丰',
-  sent_at               TIMESTAMPTZ,
-  send_locked           BOOLEAN NOT NULL DEFAULT FALSE,
+  -- 盖章上传
+  stamp_upload_responsible_id  UUID REFERENCES public.profiles(id),
+  stamp_upload_count           INTEGER,
+  stamp_upload_scan_url        TEXT,
+  stamp_upload_completed_at    TIMESTAMPTZ,
+  stamp_upload_locked          BOOLEAN NOT NULL DEFAULT FALSE,
 
-  -- 签收
-  receipt_responsible_id       UUID REFERENCES public.profiles(id),
-  receipt_screenshot_url        TEXT,
-  customer_confirm_screenshot_url TEXT,
-  customer_confirmed_at         TIMESTAMPTZ,
-  receipt_locked                BOOLEAN NOT NULL DEFAULT FALSE,
+  -- 寄出
+  send_out_responsible_id   UUID REFERENCES public.profiles(id),
+  tracking_number           TEXT,
+  courier                   TEXT DEFAULT '顺丰',
+  sent_at                   TIMESTAMPTZ,
+  send_out_locked           BOOLEAN NOT NULL DEFAULT FALSE,
 
   created_at  TIMESTAMPTZ DEFAULT NOW(),
   updated_at  TIMESTAMPTZ DEFAULT NOW()
@@ -91,6 +91,7 @@ CREATE TABLE public.payments (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id  UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
 
+  payment_responsible_id  UUID REFERENCES public.profiles(id),
   payment_amount          NUMERIC(12,2),
   payment_screenshot_url  TEXT,
   bank_flow_number        TEXT,

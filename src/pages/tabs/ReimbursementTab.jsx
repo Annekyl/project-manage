@@ -19,7 +19,6 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
   const [formData, setFormData] = useState({
     amount: '',
     responsible_id: currentUserId || '',
-    responsible_name: '',
     recipient_type: 'teacher',
     recipient_name: '',
     notes: '',
@@ -50,7 +49,6 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
       setFormData({
         amount: '',
         responsible_id: '',
-        responsible_name: '',
         recipient_type: 'teacher',
         recipient_name: '',
         notes: '',
@@ -246,17 +244,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
                 <UserSelect
                   value={formData.responsible_id}
                   onChange={(v) => setFormData({ ...formData, responsible_id: v })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>具体负责人</label>
-                <input
-                  type="text"
-                  value={formData.responsible_name}
-                  onChange={(e) => setFormData({ ...formData, responsible_name: e.target.value })}
-                  placeholder="输入负责人姓名"
-                  className="w-full rounded-xl shadow-sm transition-all"
-                  style={{ background: 'var(--bg-input)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  disabled={!isAdmin}
                 />
               </div>
               <div>

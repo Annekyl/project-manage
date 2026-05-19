@@ -1,7 +1,8 @@
 export const statusLabels = {
-  contract: '合同阶段',
-  payment: '打款阶段',
-  invoice: '开票阶段',
+  audit_sign: '合同审核签收',
+  stamp_upload: '合同盖章上传',
+  send_out: '合同寄出',
+  payment_invoice: '打款开票',
   reimbursement: '报销阶段',
   closure: '结题阶段',
   completed: '已完成'
