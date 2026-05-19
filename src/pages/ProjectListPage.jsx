@@ -4,7 +4,9 @@ import { useProjects, useCreateProject, useUpdateProject } from '../hooks/usePro
 import { useAuth } from '../hooks/useAuth'
 import { useInitContract } from '../hooks/useContract'
 import { useDeleteProject } from '../hooks/useDeleteProject'
-import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2, Download } from 'lucide-react'
+import { SkeletonTable } from '../components/common/Skeleton'
+import { exportCsv } from '../utils/exportCsv'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -107,16 +109,31 @@ export default function ProjectListPage() {
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-bright)' }}>项目列表</h1>
           <p className="mt-1" style={{ color: 'var(--text-dim)' }}>管理所有产学研项目</p>
         </div>
-        {isAdmin && (
+        <div className="flex items-center space-x-2">
           <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center px-4 py-2.5 text-white rounded-xl shadow-md btn-transition"
-            style={{ background: 'var(--gradient-primary)' }}
+            onClick={() => {
+              const headers = ['项目名称', '企业名称', '负责人', '总金额', '状态', '创建时间']
+              const statusLabels = { contract: '合同阶段', payment: '打款阶段', invoice: '开票阶段', reimbursement: '报销阶段', closure: '结题阶段', completed: '已完成' }
+              const rows = projects.map(p => [p.name, p.company_name, p.company_contact || '', p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
+              exportCsv('项目列表.csv', headers, rows)
+            }}
+            className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text)' }}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            新建项目
+            <Download className="w-4 h-4 mr-1" />
+            导出
           </button>
-        )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center px-4 py-2.5 text-white rounded-xl shadow-md btn-transition"
+              style={{ background: 'var(--gradient-primary)' }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              新建项目
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 搜索框 */}
@@ -137,10 +154,7 @@ export default function ProjectListPage() {
       {/* 项目表格 */}
       <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
         {isLoading ? (
-          <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-dim)' }}>
-            <Loader2 className="w-5 h-5 mr-2 spinner" />
-            加载中...
-          </div>
+          <div className="p-4"><SkeletonTable rows={5} cols={5} /></div>
         ) : projects.length === 0 ? (
           <div className="text-center py-12" style={{ color: 'var(--text-dim)' }}>
             {debouncedSearch ? '没有找到匹配的项目' : '暂无项目'}

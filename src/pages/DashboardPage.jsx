@@ -5,6 +5,7 @@ import { useProjects } from '../hooks/useProjects'
 import { supabase } from '../utils/supabase'
 import ProgressStepper from '../components/common/ProgressStepper'
 import { Search, FolderOpen, Clock, CheckCircle, User, ChevronLeft, ChevronRight } from 'lucide-react'
+import { SkeletonCard } from '../components/common/Skeleton'
 import { format } from 'date-fns'
 
 const PAGE_SIZE = 10
@@ -156,7 +157,9 @@ export default function DashboardPage() {
 
       {/* 项目卡片列表 */}
       {isLoading ? (
-        <div className="text-center py-12" style={{ color: 'var(--text-dim)' }}>加载中...</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
       ) : projects.length === 0 ? (
         <div className="text-center py-12" style={{ color: 'var(--text-dim)' }}>
           {debouncedSearch ? '没有找到匹配的项目' : '暂无项目'}

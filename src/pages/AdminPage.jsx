@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../utils/supabase'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
-import { UserPlus, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
+import { UserPlus, ChevronLeft, ChevronRight, X, Loader2, Download } from 'lucide-react'
 import ConfirmModal from '../components/common/ConfirmModal'
+import { SkeletonTable } from '../components/common/Skeleton'
+import { exportCsv } from '../utils/exportCsv'
 
 const PAGE_SIZE = 10
 
@@ -82,9 +84,9 @@ export default function AdminPage() {
 
       {/* Tab 导航 */}
       <div className="border-b mb-6" style={{ borderColor: 'var(--border)' }}>
-        <nav className="flex space-x-8">
+        <nav className="flex space-x-8" role="tablist">
           {['users', 'logs'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className="py-2.5 px-1 border-b-2 font-medium text-sm transition-colors" style={{ borderColor: activeTab === tab ? 'var(--accent)' : 'transparent', color: activeTab === tab ? 'var(--accent)' : 'var(--text-dim)' }}>
+            <button key={tab} role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className="py-2.5 px-1 border-b-2 font-medium text-sm transition-colors" style={{ borderColor: activeTab === tab ? 'var(--accent)' : 'transparent', color: activeTab === tab ? 'var(--accent)' : 'var(--text-dim)' }}>
               {tab === 'users' ? '用户管理' : '审计日志'}
             </button>
           ))}
@@ -94,14 +96,25 @@ export default function AdminPage() {
       {/* 用户管理 */}
       {activeTab === 'users' && (
         <div>
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-4 space-x-2">
+            <button
+              onClick={() => {
+                const headers = ['姓名', 'ID', '角色', '注册时间']
+                const rows = users.map(u => [u.name, u.id, u.role === 'admin' ? '管理员' : '成员', u.created_at])
+                exportCsv('用户列表.csv', headers, rows)
+              }}
+              className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text)' }}
+            >
+              <Download className="w-4 h-4 mr-1" /> 导出
+            </button>
             <button onClick={() => setShowCreateUser(true)} className="flex items-center px-4 py-2.5 text-white rounded-xl shadow-md btn-transition" style={{ background: 'var(--gradient-primary)' }}>
               <UserPlus className="w-4 h-4 mr-2" /> 创建用户
             </button>
           </div>
           <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
             {loading ? (
-              <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-dim)' }}><Loader2 className="w-5 h-5 mr-2 spinner" />加载中...</div>
+              <div className="p-4"><SkeletonTable rows={5} cols={5} /></div>
             ) : (
               <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>
                 <thead style={{ background: 'var(--bg-table-head)' }}>
@@ -169,8 +182,19 @@ export default function AdminPage() {
       {/* 审计日志 */}
       {activeTab === 'logs' && (
         <div>
-          <div className="mb-4">
+          <div className="flex items-center gap-2 mb-4">
             <input type="text" value={logFilter} onChange={(e) => { setLogFilter(e.target.value); setLogPage(1) }} placeholder="按项目 ID 筛选..." className="w-full max-w-md rounded-xl shadow-sm transition-all" style={inputStyle} />
+            <button
+              onClick={() => {
+                const headers = ['时间', '操作表', '动作', '记录 ID']
+                const rows = logs.map(l => [l.created_at, l.table_name, l.action, l.record_id || ''])
+                exportCsv('审计日志.csv', headers, rows)
+              }}
+              className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition shrink-0"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text)' }}
+            >
+              <Download className="w-4 h-4 mr-1" /> 导出
+            </button>
           </div>
           <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
             <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>

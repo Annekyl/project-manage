@@ -70,12 +70,17 @@ export default function FileUpload({ value, onChange, folder, disabled = false }
 
   return (
     <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       onClick={() => !disabled && !uploading && fileInputRef.current?.click()}
-      className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"
+      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !disabled && !uploading) { e.preventDefault(); fileInputRef.current?.click() } }}
+      aria-label="点击或拖拽文件上传"
+      className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors outline-none focus-visible:ring-2"
       style={{
         borderColor: disabled ? 'var(--border-light)' : 'var(--border)',
         background: disabled ? 'var(--bg-table-head)' : 'transparent',
         cursor: disabled ? 'not-allowed' : 'pointer',
+        '--tw-ring-color': 'var(--accent)',
       }}
     >
       <Upload className="w-6 h-6 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
