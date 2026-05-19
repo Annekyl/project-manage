@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage'
 import ProjectListPage from './pages/ProjectListPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import AdminPage from './pages/AdminPage'
+import SettingsPage from './pages/SettingsPage'
 
 const queryClient = new QueryClient()
 
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="projects" element={<ProjectListPage />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="admin" element={<Guard adminOnly><AdminPage /></Guard>} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </HashRouter>

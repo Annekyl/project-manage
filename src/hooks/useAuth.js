@@ -35,6 +35,10 @@ export function useAuth() {
 
   const isAdmin = profile?.role === 'admin'
 
+  async function refreshProfile() {
+    if (user) await fetchProfile(user.id)
+  }
+
   async function signIn(email, password) {
     return supabase.auth.signInWithPassword({ email, password })
   }
@@ -43,5 +47,5 @@ export function useAuth() {
     return supabase.auth.signOut()
   }
 
-  return { user, profile, isAdmin, loading, signIn, signOut }
+  return { user, profile, isAdmin, loading, signIn, signOut, refreshProfile }
 }

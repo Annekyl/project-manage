@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { LayoutDashboard, FolderOpen, Settings } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, Settings, UserCog } from 'lucide-react'
 
 export default function Sidebar() {
   const { isAdmin } = useAuth()
@@ -13,6 +13,8 @@ export default function Sidebar() {
   if (isAdmin) {
     navItems.push({ to: '/admin', icon: Settings, label: '系统管理' })
   }
+
+  navItems.push({ to: '/settings', icon: UserCog, label: '个人设置' })
 
   return (
     <aside className="w-64 bg-white shadow-md">
