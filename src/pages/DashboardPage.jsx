@@ -6,7 +6,7 @@ import { useUsers } from '../hooks/useUsers'
 import { supabase } from '../utils/supabase'
 import ProgressStepper from '../components/common/ProgressStepper'
 import Pagination from '../components/common/Pagination'
-import { Search, FolderOpen, Clock, CheckCircle, User } from 'lucide-react'
+import { Search, User } from 'lucide-react'
 import { SkeletonCard } from '../components/common/Skeleton'
 import { statusLabels } from '../utils/constants'
 import { format } from 'date-fns'
@@ -91,43 +91,8 @@ export default function DashboardPage() {
         <p className="mt-1" style={{ color: 'var(--text-dim)' }}>产学研项目管理总览</p>
       </div>
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {[
-          { key: '', label: '全部项目', value: statsLoading ? '-' : statTotal, gradient: 'var(--gradient-primary)', icon: FolderOpen },
-          { key: 'in_progress', label: '进行中', value: statsLoading ? '-' : statInProgress, gradient: 'var(--gradient-warning)', icon: Clock },
-          { key: 'completed', label: '已完成', value: statsLoading ? '-' : statCompleted, gradient: 'var(--gradient-success)', icon: CheckCircle },
-        ].map((card) => {
-          const selected = statusFilter === card.key
-          const Icon = card.icon
-          return (
-            <div
-              key={card.key}
-              onClick={() => { setStatusFilter(card.key); setPage(1) }}
-              className="rounded-xl shadow-lg p-5 card-animate cursor-pointer transition-all"
-              style={{
-                background: selected ? card.gradient : 'var(--bg-card)',
-                border: selected ? 'none' : '2px solid var(--border-light)',
-                boxShadow: selected ? 'var(--shadow)' : 'none',
-                transform: selected ? 'scale(1.02)' : 'scale(1)',
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm" style={{ color: selected ? 'rgba(255,255,255,0.7)' : 'var(--text-dim)' }}>{card.label}</p>
-                  <p className="text-3xl font-bold mt-1" style={{ color: selected ? '#fff' : 'var(--text-bright)' }}>{card.value}</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: selected ? 'rgba(255,255,255,0.2)' : 'var(--bg-table-head)' }}>
-                  <Icon className="w-6 h-6" style={{ color: selected ? '#fff' : 'var(--text-dim)' }} />
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
       {/* 搜索框 */}
-      <div className="mb-5">
+      <div className="mb-4">
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <input
@@ -139,6 +104,42 @@ export default function DashboardPage() {
             style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text)' }}
           />
         </div>
+      </div>
+
+      {/* 标签栏 */}
+      <div className="border-b mb-5" style={{ borderColor: 'var(--border)' }}>
+        <nav className="flex space-x-6" role="tablist">
+          {[
+            { key: '', label: '全部项目', count: statsLoading ? null : statTotal },
+            { key: 'in_progress', label: '进行中', count: statsLoading ? null : statInProgress },
+            { key: 'completed', label: '已完成', count: statsLoading ? null : statCompleted },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              role="tab"
+              aria-selected={statusFilter === tab.key}
+              onClick={() => { setStatusFilter(tab.key); setPage(1) }}
+              className="py-2.5 px-1 border-b-2 font-medium text-sm transition-colors flex items-center"
+              style={{
+                borderColor: statusFilter === tab.key ? 'var(--accent)' : 'transparent',
+                color: statusFilter === tab.key ? 'var(--accent)' : 'var(--text-dim)',
+              }}
+            >
+              {tab.label}
+              {tab.count !== null && (
+                <span
+                  className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full"
+                  style={{
+                    background: statusFilter === tab.key ? 'var(--accent-light)' : 'var(--bg-table-head)',
+                    color: statusFilter === tab.key ? 'var(--accent)' : 'var(--text-dim)',
+                  }}
+                >
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {/* 项目卡片列表 */}
