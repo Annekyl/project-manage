@@ -105,6 +105,9 @@ export function useUpdateProject() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] })
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['projects'] })
+      qc.invalidateQueries({ queryKey: ['project', data.id] })
+    }
   })
 }

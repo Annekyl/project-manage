@@ -4,9 +4,12 @@ import { useProjects, useCreateProject, useUpdateProject } from '../hooks/usePro
 import { useAuth } from '../hooks/useAuth'
 import { useInitContract } from '../hooks/useContract'
 import { useDeleteProject } from '../hooks/useDeleteProject'
-import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight, Loader2, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { SkeletonTable } from '../components/common/Skeleton'
+import Pagination from '../components/common/Pagination'
+import Modal from '../components/common/Modal'
 import { exportCsv } from '../utils/exportCsv'
+import { statusLabels } from '../utils/constants'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -18,7 +21,6 @@ export default function ProjectListPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sort, setSort] = useState({ field: 'created_at', asc: false })
-  const [jumpPage, setJumpPage] = useState('')
   const { isAdmin } = useAuth()
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()
@@ -94,15 +96,6 @@ export default function ProjectListPage() {
     }
   }
 
-  const statusLabels = {
-    contract: '合同阶段',
-    payment: '打款阶段',
-    invoice: '开票阶段',
-    reimbursement: '报销阶段',
-    closure: '结题阶段',
-    completed: '已完成'
-  }
-
   const inputStyle = { background: 'var(--bg-input)', borderColor: 'var(--border)', color: 'var(--text)' }
 
   // 客户端排序
@@ -130,7 +123,6 @@ export default function ProjectListPage() {
           <button
             onClick={() => {
               const headers = ['项目名称', '企业名称', '负责人', '总金额', '状态', '创建时间']
-              const statusLabels = { contract: '合同阶段', payment: '打款阶段', invoice: '开票阶段', reimbursement: '报销阶段', closure: '结题阶段', completed: '已完成' }
               const rows = projects.map(p => [p.name, p.company_name, p.company_contact || '', p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
               exportCsv('项目列表.csv', headers, rows)
             }}
@@ -279,140 +271,87 @@ export default function ProjectListPage() {
       </div>
 
       {/* 分页 */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
-            共 {totalCount} 条，第 {page} / {totalPages} 页
-          </p>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <input
-              type="number"
-              min="1"
-              max={totalPages}
-              value={jumpPage}
-              onChange={(e) => setJumpPage(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(jumpPage); if (p >= 1 && p <= totalPages) { setPage(p); setJumpPage('') } } }}
-              placeholder={String(page)}
-              className="w-14 text-center rounded-lg border text-sm py-1.5"
-              style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }}
-            />
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
 
       {/* 删除确认弹窗 */}
-      {deleteConfirm.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={() => setDeleteConfirm({ open: false, projectId: null, projectName: '' })} />
-          <div className="relative rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6 modal-enter" style={{ background: 'var(--bg-card)' }}>
-            <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-bright)' }}>确认删除</h2>
-            <p className="mb-4" style={{ color: 'var(--text-dim)' }}>
-              确定要删除项目 <span className="font-medium" style={{ color: 'var(--text-bright)' }}>{deleteConfirm.projectName}</span> 吗？该项目的所有数据将被永久删除，且无法恢复。
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setDeleteConfirm({ open: false, projectId: null, projectName: '' })}
-                className="px-4 py-2 text-sm font-medium rounded-xl btn-transition"
-                style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
-              >
-                取消
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleteProject.isPending}
-                className="px-4 py-2 text-sm font-medium text-white rounded-xl disabled:opacity-50 btn-transition"
-                style={{ background: 'var(--gradient-danger)' }}
-              >
-                {deleteProject.isPending ? '删除中...' : '确认删除'}
-              </button>
-            </div>
-          </div>
+      <Modal open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, projectId: null, projectName: '' })} title="确认删除" maxWidth="max-w-sm">
+        <p className="mb-4" style={{ color: 'var(--text-dim)' }}>
+          确定要删除项目 <span className="font-medium" style={{ color: 'var(--text-bright)' }}>{deleteConfirm.projectName}</span> 吗？该项目的所有数据将被永久删除，且无法恢复。
+        </p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => setDeleteConfirm({ open: false, projectId: null, projectName: '' })}
+            className="px-4 py-2 text-sm font-medium rounded-xl btn-transition"
+            style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
+          >
+            取消
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleteProject.isPending}
+            className="px-4 py-2 text-sm font-medium text-white rounded-xl disabled:opacity-50 btn-transition"
+            style={{ background: 'var(--gradient-danger)' }}
+          >
+            {deleteProject.isPending ? '删除中...' : '确认删除'}
+          </button>
         </div>
-      )}
+      </Modal>
 
       {/* 编辑项目弹窗 */}
-      {editProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={() => setEditProject(null)} />
-          <div className="relative rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 modal-enter" style={{ background: 'var(--bg-card)' }}>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-bright)' }}>编辑项目</h2>
-            <form onSubmit={handleUpdate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目名称 *</label>
-                <input type="text" value={editProject.name} onChange={(e) => setEditProject({ ...editProject, name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>企业名称 *</label>
-                <input type="text" value={editProject.company_name} onChange={(e) => setEditProject({ ...editProject, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目负责人</label>
-                <input type="text" value={editProject.company_contact} onChange={(e) => setEditProject({ ...editProject, company_contact: e.target.value })} placeholder="请输入负责人姓名" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
-                <input type="number" min="0" step="0.01" value={editProject.total_amount} onChange={(e) => setEditProject({ ...editProject, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button type="button" onClick={() => setEditProject(null)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
-                <button type="submit" disabled={updateProject.isPending} className="px-4 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 btn-transition" style={{ background: 'var(--gradient-primary)' }}>
-                  {updateProject.isPending ? '保存中...' : '保存'}
-                </button>
-              </div>
-            </form>
+      <Modal open={!!editProject} onClose={() => setEditProject(null)} title="编辑项目">
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目名称 *</label>
+            <input type="text" value={editProject?.name || ''} onChange={(e) => setEditProject({ ...editProject, name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>企业名称 *</label>
+            <input type="text" value={editProject?.company_name || ''} onChange={(e) => setEditProject({ ...editProject, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目负责人</label>
+            <input type="text" value={editProject?.company_contact || ''} onChange={(e) => setEditProject({ ...editProject, company_contact: e.target.value })} placeholder="请输入负责人姓名" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
+            <input type="number" min="0" step="0.01" value={editProject?.total_amount || ''} onChange={(e) => setEditProject({ ...editProject, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button type="button" onClick={() => setEditProject(null)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
+            <button type="submit" disabled={updateProject.isPending} className="px-4 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 btn-transition" style={{ background: 'var(--gradient-primary)' }}>
+              {updateProject.isPending ? '保存中...' : '保存'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* 创建项目弹窗 */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={() => setShowCreate(false)} />
-          <div className="relative rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 modal-enter" style={{ background: 'var(--bg-card)' }}>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-bright)' }}>新建项目</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目名称 *</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>企业名称 *</label>
-                <input type="text" value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目负责人</label>
-                <input type="text" value={formData.company_contact} onChange={(e) => setFormData({ ...formData, company_contact: e.target.value })} placeholder="请输入负责人姓名" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
-                <input type="number" min="0" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
-                <button type="submit" disabled={createProject.isPending} className="px-4 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 btn-transition" style={{ background: 'var(--gradient-primary)' }}>
-                  {createProject.isPending ? '创建中...' : '创建项目'}
-                </button>
-              </div>
-            </form>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="新建项目">
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目名称 *</label>
+            <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>企业名称 *</label>
+            <input type="text" value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目负责人</label>
+            <input type="text" value={formData.company_contact} onChange={(e) => setFormData({ ...formData, company_contact: e.target.value })} placeholder="请输入负责人姓名" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
+            <input type="number" min="0" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
+            <button type="submit" disabled={createProject.isPending} className="px-4 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 btn-transition" style={{ background: 'var(--gradient-primary)' }}>
+              {createProject.isPending ? '创建中...' : '创建项目'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

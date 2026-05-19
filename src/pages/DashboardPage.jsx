@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useProjectsWithDetails } from '../hooks/useProjects'
+import { useUsers } from '../hooks/useUsers'
 import { supabase } from '../utils/supabase'
 import ProgressStepper from '../components/common/ProgressStepper'
-import { Search, FolderOpen, Clock, CheckCircle, User, ChevronLeft, ChevronRight } from 'lucide-react'
+import Pagination from '../components/common/Pagination'
+import { Search, FolderOpen, Clock, CheckCircle, User } from 'lucide-react'
 import { SkeletonCard } from '../components/common/Skeleton'
+import { statusLabels } from '../utils/constants'
 import { format } from 'date-fns'
 
 const PAGE_SIZE = 10
@@ -14,7 +17,6 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [jumpPage, setJumpPage] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -45,14 +47,7 @@ export default function DashboardPage() {
     staleTime: 60_000,
   })
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['profiles'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('id, name')
-      return data || []
-    },
-    staleTime: 5 * 60 * 1000,
-  })
+  const { data: users = [] } = useUsers()
 
   const userMap = {}
   users.forEach(u => { userMap[u.id] = u.name })
@@ -82,15 +77,6 @@ export default function DashboardPage() {
         return closure?.responsible_name || closure?.responsible_id
     }
     return null
-  }
-
-  const statusLabels = {
-    contract: '合同阶段',
-    payment: '打款阶段',
-    invoice: '开票阶段',
-    reimbursement: '报销阶段',
-    closure: '结题阶段',
-    completed: '已完成'
   }
 
   const statTotal = stats?.total || 0
@@ -223,42 +209,7 @@ export default function DashboardPage() {
           </div>
 
           {/* 分页 */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
-                共 {totalCount} 条，第 {page} / {totalPages} 页
-              </p>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  max={totalPages}
-                  value={jumpPage}
-                  onChange={(e) => setJumpPage(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(jumpPage); if (p >= 1 && p <= totalPages) { setPage(p); setJumpPage('') } } }}
-                  placeholder={String(page)}
-                  className="w-14 text-center rounded-lg border text-sm py-1.5"
-                  style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }}
-                />
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
         </>
       )}
     </div>

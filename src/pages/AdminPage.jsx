@@ -1,84 +1,118 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../utils/supabase'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
-import { UserPlus, ChevronLeft, ChevronRight, X, Loader2, Download } from 'lucide-react'
+import { UserPlus, X, Loader2, Download } from 'lucide-react'
 import ConfirmModal from '../components/common/ConfirmModal'
+import Pagination from '../components/common/Pagination'
+import Modal from '../components/common/Modal'
 import { SkeletonTable } from '../components/common/Skeleton'
 import { exportCsv } from '../utils/exportCsv'
 
 const PAGE_SIZE = 10
 
 export default function AdminPage() {
+  const qc = useQueryClient()
   const [activeTab, setActiveTab] = useState('users')
-  const [users, setUsers] = useState([])
-  const [logs, setLogs] = useState([])
-  const [loading, setLoading] = useState(true)
   const [logFilter, setLogFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [newUser, setNewUser] = useState({ email: '', password: '', name: '' })
   const [userPage, setUserPage] = useState(1)
-  const [userTotalCount, setUserTotalCount] = useState(0)
   const [logPage, setLogPage] = useState(1)
-  const [logTotalCount, setLogTotalCount] = useState(0)
-  const [userJumpPage, setUserJumpPage] = useState('')
-  const [logJumpPage, setLogJumpPage] = useState('')
   const [detailData, setDetailData] = useState(null)
   const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: '', userName: '', newRole: '' })
 
-  useEffect(() => { fetchUsers() }, [userPage])
-  useEffect(() => { fetchLogs() }, [logPage, logFilter, dateFrom, dateTo])
+  // Users query
+  const { data: userData, isLoading: usersLoading } = useQuery({
+    queryKey: ['admin-users', userPage],
+    queryFn: async () => {
+      const from = (userPage - 1) * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
+      const { data, count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to)
+      if (error) throw error
+      return { data: data || [], totalCount: count || 0 }
+    }
+  })
 
-  async function fetchUsers() {
-    setLoading(true)
-    const from = (userPage - 1) * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
-    const { data, count, error } = await supabase.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to)
-    if (!error && data) { setUsers(data); setUserTotalCount(count || 0) }
-    setLoading(false)
-  }
+  const users = userData?.data || []
+  const userTotalCount = userData?.totalCount || 0
+  const userTotalPages = Math.ceil(userTotalCount / PAGE_SIZE)
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true)
-    const from = (logPage - 1) * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
-    let query = supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to)
-    if (logFilter) query = query.eq('project_id', logFilter)
-    if (dateFrom) query = query.gte('created_at', dateFrom)
-    if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
-    const { data, count, error } = await query
-    if (!error && data) { setLogs(data); setLogTotalCount(count || 0) }
-    setLoading(false)
-  }, [logPage, logFilter])
+  // Logs query
+  const { data: logData, isLoading: logsLoading } = useQuery({
+    queryKey: ['admin-logs', logPage, logFilter, dateFrom, dateTo],
+    queryFn: async () => {
+      const from = (logPage - 1) * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
+      let query = supabase
+        .from('audit_logs')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to)
+      if (logFilter) query = query.eq('project_id', logFilter)
+      if (dateFrom) query = query.gte('created_at', dateFrom)
+      if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
+      const { data, count, error } = await query
+      if (error) throw error
+      return { data: data || [], totalCount: count || 0 }
+    }
+  })
+
+  const logs = logData?.data || []
+  const logTotalCount = logData?.totalCount || 0
+  const logTotalPages = Math.ceil(logTotalCount / PAGE_SIZE)
+
+  // Mutations
+  const roleMutation = useMutation({
+    mutationFn: async ({ userId, newRole }) => {
+      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success('角色已更新')
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+    onError: (error) => toast.error('更新失败: ' + error.message)
+  })
+
+  const createUserMutation = useMutation({
+    mutationFn: async ({ email, password, name }) => {
+      const { error } = await supabase.auth.signUp({
+        email, password, options: { data: { name } }
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success('用户创建成功，请用户查收确认邮件')
+      setShowCreateUser(false)
+      setNewUser({ email: '', password: '', name: '' })
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+    onError: (error) => toast.error('创建失败: ' + error.message)
+  })
 
   function handleRoleChange(userId, userName, newRole) {
     setRoleConfirm({ open: true, userId, userName, newRole })
   }
 
-  async function confirmRoleChange() {
+  function confirmRoleChange() {
     const { userId, newRole } = roleConfirm
-    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
-    if (error) toast.error('更新失败: ' + error.message)
-    else { toast.success('角色已更新'); fetchUsers() }
+    roleMutation.mutate({ userId, newRole })
     setRoleConfirm({ open: false, userId: '', userName: '', newRole: '' })
   }
 
-  async function handleCreateUser(e) {
+  function handleCreateUser(e) {
     e.preventDefault()
-    try {
-      const { error } = await supabase.auth.signUp({ email: newUser.email, password: newUser.password, options: { data: { name: newUser.name } } })
-      if (error) throw error
-      toast.success('用户创建成功，请用户查收确认邮件')
-      setShowCreateUser(false)
-      setNewUser({ email: '', password: '', name: '' })
-      fetchUsers()
-    } catch (error) { toast.error('创建失败: ' + error.message) }
+    createUserMutation.mutate(newUser)
   }
 
-  const userTotalPages = Math.ceil(userTotalCount / PAGE_SIZE)
-  const logTotalPages = Math.ceil(logTotalCount / PAGE_SIZE)
   const inputStyle = { background: 'var(--bg-input)', borderColor: 'var(--border)', color: 'var(--text)' }
 
   return (
@@ -119,8 +153,10 @@ export default function AdminPage() {
             </button>
           </div>
           <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
-            {loading ? (
+            {usersLoading ? (
               <div className="p-4"><SkeletonTable rows={5} cols={5} /></div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>暂无用户</div>
             ) : (
               <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>
                 <thead style={{ background: 'var(--bg-table-head)' }}>
@@ -154,37 +190,24 @@ export default function AdminPage() {
               </table>
             )}
           </div>
-          {userTotalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm" style={{ color: 'var(--text-dim)' }}>共 {userTotalCount} 条，第 {userPage} / {userTotalPages} 页</p>
-              <div className="flex items-center space-x-2">
-                <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronLeft className="w-4 h-4" /></button>
-                <input type="number" min="1" max={userTotalPages} value={userJumpPage} onChange={(e) => setUserJumpPage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(userJumpPage); if (p >= 1 && p <= userTotalPages) { setUserPage(p); setUserJumpPage('') } } }} placeholder={String(userPage)} className="w-14 text-center rounded-lg border text-sm py-1.5" style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }} />
-                <button onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))} disabled={userPage >= userTotalPages} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-          )}
+          <Pagination page={userPage} totalPages={userTotalPages} totalCount={userTotalCount} onPageChange={setUserPage} />
         </div>
       )}
 
       {/* 创建用户弹窗 */}
-      {showCreateUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={() => setShowCreateUser(false)} />
-          <div className="relative rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 modal-enter" style={{ background: 'var(--bg-card)' }}>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-bright)' }}>创建新用户</h2>
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>姓名 *</label><input type="text" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
-              <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>邮箱 *</label><input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
-              <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>密码 *</label><input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required minLength={6} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button type="button" onClick={() => setShowCreateUser(false)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
-                <button type="submit" className="px-4 py-2.5 text-sm font-medium text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>创建</button>
-              </div>
-            </form>
+      <Modal open={showCreateUser} onClose={() => setShowCreateUser(false)} title="创建新用户">
+        <form onSubmit={handleCreateUser} className="space-y-4">
+          <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>姓名 *</label><input type="text" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
+          <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>邮箱 *</label><input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
+          <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>密码 *</label><input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required minLength={6} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button type="button" onClick={() => setShowCreateUser(false)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
+            <button type="submit" disabled={createUserMutation.isPending} className="px-4 py-2.5 text-sm font-medium text-white rounded-xl btn-transition disabled:opacity-50" style={{ background: 'var(--gradient-primary)' }}>
+              {createUserMutation.isPending ? '创建中...' : '创建'}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* 审计日志 */}
       {activeTab === 'logs' && (
@@ -216,7 +239,7 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y" style={{ borderColor: 'var(--border-light)' }}>
-                {loading ? (
+                {logsLoading ? (
                   <tr><td colSpan={5} className="text-center py-12" style={{ color: 'var(--text-dim)' }}><div className="flex items-center justify-center"><Loader2 className="w-5 h-5 mr-2 spinner" />加载中...</div></td></tr>
                 ) : logs.length === 0 ? (
                   <tr><td colSpan={5} className="text-center py-12" style={{ color: 'var(--text-muted)' }}>暂无日志记录</td></tr>
@@ -234,16 +257,7 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
-          {logTotalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm" style={{ color: 'var(--text-dim)' }}>共 {logTotalCount} 条，第 {logPage} / {logTotalPages} 页</p>
-              <div className="flex items-center space-x-2">
-                <button onClick={() => setLogPage(p => Math.max(1, p - 1))} disabled={logPage === 1} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronLeft className="w-4 h-4" /></button>
-                <input type="number" min="1" max={logTotalPages} value={logJumpPage} onChange={(e) => setLogJumpPage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const p = parseInt(logJumpPage); if (p >= 1 && p <= logTotalPages) { setLogPage(p); setLogJumpPage('') } } }} placeholder={String(logPage)} className="w-14 text-center rounded-lg border text-sm py-1.5" style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', color: 'var(--text)' }} />
-                <button onClick={() => setLogPage(p => Math.min(logTotalPages, p + 1))} disabled={logPage >= logTotalPages} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-          )}
+          <Pagination page={logPage} totalPages={logTotalPages} totalCount={logTotalCount} onPageChange={setLogPage} />
         </div>
       )}
 
@@ -256,22 +270,13 @@ export default function AdminPage() {
       />
 
       {/* 数据详情弹窗 */}
-      {detailData !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={() => setDetailData(null)} />
-          <div className="relative rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col modal-enter" style={{ background: 'var(--bg-card)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-light)' }}>
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--text-bright)' }}>数据详情</h3>
-              <button onClick={() => setDetailData(null)} className="p-1 rounded-lg transition-colors" style={{ color: 'var(--text-dim)' }}><X className="w-5 h-5" /></button>
-            </div>
-            <div className="px-6 py-4 overflow-auto flex-1">
-              <pre className="text-sm p-4 rounded-xl whitespace-pre-wrap break-words font-mono" style={{ background: 'var(--bg-table-head)', color: 'var(--text)', border: '1px solid var(--border-light)' }}>
-                {JSON.stringify(detailData, null, 2)}
-              </pre>
-            </div>
-          </div>
+      <Modal open={detailData !== null} onClose={() => setDetailData(null)} title="数据详情" maxWidth="max-w-2xl">
+        <div className="max-h-[60vh] overflow-auto">
+          <pre className="text-sm p-4 rounded-xl whitespace-pre-wrap break-words font-mono" style={{ background: 'var(--bg-table-head)', color: 'var(--text)', border: '1px solid var(--border-light)' }}>
+            {JSON.stringify(detailData, null, 2)}
+          </pre>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }

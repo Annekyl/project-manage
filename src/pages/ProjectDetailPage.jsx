@@ -10,6 +10,7 @@ import ReimbursementTab from './tabs/ReimbursementTab'
 import ClosureTab from './tabs/ClosureTab'
 import { ArrowLeft, Building2, User, DollarSign, Download } from 'lucide-react'
 import { exportCsv } from '../utils/exportCsv'
+import { statusLabels } from '../utils/constants'
 
 const TABS = [
   { key: 'contract', label: '合同' },
@@ -39,11 +40,6 @@ export default function ProjectDetailPage() {
         </button>
       </div>
     )
-  }
-
-  const statusLabels = {
-    contract: '合同阶段', payment: '打款阶段', invoice: '开票阶段',
-    reimbursement: '报销阶段', closure: '结题阶段', completed: '已完成'
   }
 
   function handleExport() {
