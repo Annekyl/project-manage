@@ -28,9 +28,9 @@ export function useProjects({ page = 1, pageSize = 10, search = '', status = '' 
   })
 }
 
-export function useProjectsWithDetails({ page = 1, pageSize = 10, search = '' } = {}) {
+export function useProjectsWithDetails({ page = 1, pageSize = 10, search = '', status = '' } = {}) {
   return useQuery({
-    queryKey: ['projects-detail', { page, pageSize, search }],
+    queryKey: ['projects-detail', { page, pageSize, search, status }],
     queryFn: async () => {
       const from = (page - 1) * pageSize
       const to = from + pageSize - 1
@@ -43,6 +43,11 @@ export function useProjectsWithDetails({ page = 1, pageSize = 10, search = '' } 
 
       if (search) {
         query = query.or(`name.ilike.%${search}%,company_name.ilike.%${search}%`)
+      }
+      if (status === 'completed') {
+        query = query.eq('status', 'completed')
+      } else if (status === 'in_progress') {
+        query = query.neq('status', 'completed')
       }
 
       const { data, count, error } = await query

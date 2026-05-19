@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function DashboardPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const { data, isLoading } = useProjectsWithDetails({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
+  const { data, isLoading } = useProjectsWithDetails({ page, pageSize: PAGE_SIZE, search: debouncedSearch, status: statusFilter })
   const projects = data?.data || []
   const totalCount = data?.totalCount || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
@@ -92,39 +93,37 @@ export default function DashboardPage() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="rounded-xl shadow-lg p-5 card-animate" style={{ background: 'var(--gradient-primary)', boxShadow: 'var(--shadow)' }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white/70">全部项目</p>
-              <p className="text-3xl font-bold text-white mt-1">{statsLoading ? '-' : statTotal}</p>
+        {[
+          { key: '', label: '全部项目', value: statsLoading ? '-' : statTotal, gradient: 'var(--gradient-primary)', icon: FolderOpen },
+          { key: 'in_progress', label: '进行中', value: statsLoading ? '-' : statInProgress, gradient: 'var(--gradient-warning)', icon: Clock },
+          { key: 'completed', label: '已完成', value: statsLoading ? '-' : statCompleted, gradient: 'var(--gradient-success)', icon: CheckCircle },
+        ].map((card) => {
+          const selected = statusFilter === card.key
+          const Icon = card.icon
+          return (
+            <div
+              key={card.key}
+              onClick={() => { setStatusFilter(card.key); setPage(1) }}
+              className="rounded-xl shadow-lg p-5 card-animate cursor-pointer transition-all"
+              style={{
+                background: selected ? card.gradient : 'var(--bg-card)',
+                border: selected ? 'none' : '2px solid var(--border-light)',
+                boxShadow: selected ? 'var(--shadow)' : 'none',
+                transform: selected ? 'scale(1.02)' : 'scale(1)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: selected ? 'rgba(255,255,255,0.7)' : 'var(--text-dim)' }}>{card.label}</p>
+                  <p className="text-3xl font-bold mt-1" style={{ color: selected ? '#fff' : 'var(--text-bright)' }}>{card.value}</p>
+                </div>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: selected ? 'rgba(255,255,255,0.2)' : 'var(--bg-table-head)' }}>
+                  <Icon className="w-6 h-6" style={{ color: selected ? '#fff' : 'var(--text-dim)' }} />
+                </div>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <FolderOpen className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl shadow-lg p-5 card-animate" style={{ background: 'var(--gradient-warning)', boxShadow: 'var(--shadow)', animationDelay: '0.1s' }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white/70">进行中</p>
-              <p className="text-3xl font-bold text-white mt-1">{statsLoading ? '-' : statInProgress}</p>
-            </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <Clock className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl shadow-lg p-5 card-animate" style={{ background: 'var(--gradient-success)', boxShadow: 'var(--shadow)', animationDelay: '0.2s' }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white/70">已完成</p>
-              <p className="text-3xl font-bold text-white mt-1">{statsLoading ? '-' : statCompleted}</p>
-            </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
+          )
+        })}
       </div>
 
       {/* 搜索框 */}

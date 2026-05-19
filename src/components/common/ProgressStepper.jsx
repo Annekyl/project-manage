@@ -27,7 +27,7 @@ export default function ProgressStepper({ currentStatus }) {
                   background: isCompleted
                     ? 'var(--success)'
                     : isCurrent
-                    ? 'var(--accent)'
+                    ? 'var(--warning)'
                     : 'var(--bg-table-head)',
                   color: isCompleted || isCurrent ? '#fff' : 'var(--text-dim)',
                 }}
@@ -37,7 +37,7 @@ export default function ProgressStepper({ currentStatus }) {
               <span
                 className="text-xs mt-1"
                 style={{
-                  color: isCurrent ? 'var(--accent)' : 'var(--text-dim)',
+                  color: isCurrent ? 'var(--warning)' : 'var(--text-dim)',
                   fontWeight: isCurrent ? 600 : 400,
                 }}
               >
@@ -47,7 +47,7 @@ export default function ProgressStepper({ currentStatus }) {
             {index < STEPS.length - 1 && (
               <div
                 className="flex-1 h-0.5 mx-2"
-                style={{ background: isCompleted ? 'var(--success)' : 'var(--border)' }}
+                style={{ background: isCompleted ? 'var(--success)' : isCurrent ? 'var(--warning)' : 'var(--border)' }}
               />
             )}
           </div>

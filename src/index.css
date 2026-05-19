@@ -33,10 +33,10 @@
   --accent5: #c49a3c;
 
   /* 状态色 */
-  --success: #5a8a6a;
-  --success-light: rgba(90, 138, 106, 0.08);
-  --warning: #c49a3c;
-  --warning-light: rgba(196, 154, 60, 0.08);
+  --success: #43a047;
+  --success-light: rgba(67, 160, 71, 0.08);
+  --warning: #ef8c00;
+  --warning-light: rgba(239, 140, 0, 0.08);
   --danger: #c0564b;
   --danger-light: rgba(192, 86, 75, 0.08);
   --info: #2e7d6f;
@@ -50,8 +50,8 @@
 
   /* 渐变 */
   --gradient-primary: linear-gradient(135deg, #2e7d6f, #3a9d8c);
-  --gradient-success: linear-gradient(135deg, #5a8a6a, #78b08a);
-  --gradient-warning: linear-gradient(135deg, #c49a3c, #dbb557);
+  --gradient-success: linear-gradient(135deg, #43a047, #66bb6a);
+  --gradient-warning: linear-gradient(135deg, #ef8c00, #ffa726);
   --gradient-danger: linear-gradient(135deg, #c0564b, #d9756b);
 
   /* 圆角 */
@@ -86,10 +86,10 @@
   --accent4: #d9756b;
   --accent5: #dbb557;
 
-  --success: #78b08a;
-  --success-light: rgba(120, 176, 138, 0.1);
-  --warning: #dbb557;
-  --warning-light: rgba(219, 181, 87, 0.1);
+  --success: #66bb6a;
+  --success-light: rgba(102, 187, 106, 0.1);
+  --warning: #ffa726;
+  --warning-light: rgba(255, 167, 38, 0.1);
   --danger: #d9756b;
   --danger-light: rgba(217, 117, 107, 0.1);
   --info: #5cb8a6;
@@ -101,8 +101,8 @@
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
 
   --gradient-primary: linear-gradient(135deg, #5cb8a6, #4da896);
-  --gradient-success: linear-gradient(135deg, #78b08a, #6aa47c);
-  --gradient-warning: linear-gradient(135deg, #dbb557, #c9a34b);
+  --gradient-success: linear-gradient(135deg, #66bb6a, #4caf50);
+  --gradient-warning: linear-gradient(135deg, #ffa726, #fb8c00);
   --gradient-danger: linear-gradient(135deg, #d9756b, #c9675d);
 }
 
@@ -189,4 +189,37 @@ h1, h2, h3, h4, h5, h6 {
 .dark input::placeholder,
 .dark textarea::placeholder {
   color: var(--text-muted);
+}
+
+/* ===== Select 下拉框美化 ===== */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8580' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px !important;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a756d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-light);
+  outline: none;
+}
+
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+select option {
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 8px;
 }
