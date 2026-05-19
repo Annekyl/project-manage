@@ -1,29 +1,59 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useProjects } from '../hooks/useProjects'
 import { supabase } from '../utils/supabase'
 import ProgressStepper from '../components/common/ProgressStepper'
-import { Search, FolderOpen, Clock, CheckCircle, User } from 'lucide-react'
+import { Search, FolderOpen, Clock, CheckCircle, User, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 
+const PAGE_SIZE = 4
+
 export default function DashboardPage() {
-  const { data: projects, isLoading } = useProjects()
+  const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [users, setUsers] = useState({})
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
-  async function fetchUsers() {
-    const { data } = await supabase.from('profiles').select('id, name')
-    if (data) {
-      const userMap = {}
-      data.forEach(u => { userMap[u.id] = u.name })
-      setUsers(userMap)
-    }
-  }
+  const { data, isLoading } = useProjects({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
+  const projects = data?.data || []
+  const totalCount = data?.totalCount || 0
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  const { data: stats } = useQuery({
+    queryKey: ['projectStats'],
+    queryFn: async () => {
+      const { count: total } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+      const { count: completed } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed')
+      return { total: total || 0, completed: completed || 0 }
+    },
+    staleTime: 60_000,
+  })
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('id, name')
+      return data || []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const userMap = {}
+  users.forEach(u => { userMap[u.id] = u.name })
 
   function getResponsibleName(project) {
     const contract = project.contracts?.[0]
@@ -52,20 +82,6 @@ export default function DashboardPage() {
     return null
   }
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-64">加载中...</div>
-  }
-
-  const filteredProjects = projects?.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.company_name.toLowerCase().includes(search.toLowerCase())
-  ) || []
-
-  const totalCount = projects?.length || 0
-  const completedCount = projects?.filter((p) => p.status === 'completed').length || 0
-  const inProgressCount = totalCount - completedCount
-
   const statusLabels = {
     contract: '合同阶段',
     payment: '打款阶段',
@@ -74,6 +90,10 @@ export default function DashboardPage() {
     closure: '结题阶段',
     completed: '已完成'
   }
+
+  const statTotal = stats?.total || 0
+  const statCompleted = stats?.completed || 0
+  const statInProgress = statTotal - statCompleted
 
   return (
     <div>
@@ -89,7 +109,7 @@ export default function DashboardPage() {
             <FolderOpen className="w-8 h-8 text-blue-500" />
             <div className="ml-3">
               <p className="text-sm text-gray-500">全部项目</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
+              <p className="text-2xl font-bold text-gray-900">{statTotal}</p>
             </div>
           </div>
         </div>
@@ -98,7 +118,7 @@ export default function DashboardPage() {
             <Clock className="w-8 h-8 text-yellow-500" />
             <div className="ml-3">
               <p className="text-sm text-gray-500">进行中</p>
-              <p className="text-2xl font-bold text-gray-900">{inProgressCount}</p>
+              <p className="text-2xl font-bold text-gray-900">{statInProgress}</p>
             </div>
           </div>
         </div>
@@ -107,7 +127,7 @@ export default function DashboardPage() {
             <CheckCircle className="w-8 h-8 text-green-500" />
             <div className="ml-3">
               <p className="text-sm text-gray-500">已完成</p>
-              <p className="text-2xl font-bold text-gray-900">{completedCount}</p>
+              <p className="text-2xl font-bold text-gray-900">{statCompleted}</p>
             </div>
           </div>
         </div>
@@ -128,65 +148,93 @@ export default function DashboardPage() {
       </div>
 
       {/* 项目卡片列表 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredProjects.map((project) => {
-          const totalReimbursed = project.reimbursements?.reduce(
-            (sum, r) => sum + (r.amount || 0),
-            0
-          ) || 0
+      {isLoading ? (
+        <div className="text-center py-12 text-gray-500">加载中...</div>
+      ) : projects.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          {debouncedSearch ? '没有找到匹配的项目' : '暂无项目'}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {projects.map((project) => {
+              const totalReimbursed = project.reimbursements?.reduce(
+                (sum, r) => sum + (r.amount || 0),
+                0
+              ) || 0
 
-          const responsibleId = getResponsibleName(project)
-          // 如果是用户ID则从users映射中查找名称，否则直接显示（自定义名称）
-          const responsibleName = responsibleId
-            ? (users[responsibleId] || responsibleId)
-            : '未指定'
+              const responsibleId = getResponsibleName(project)
+              const responsibleName = responsibleId
+                ? (userMap[responsibleId] || responsibleId)
+                : '未指定'
 
-          return (
-            <div
-              key={project.id}
-              onClick={() => navigate(`/projects/${project.id}`)}
-              className="bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                  <p className="text-sm text-gray-500">{project.company_name}</p>
-                  {project.company_contact && (
-                    <p className="text-xs text-gray-400 mt-1">负责人: {project.company_contact}</p>
-                  )}
+              return (
+                <div
+                  key={project.id}
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                  className="bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{project.name}</h3>
+                      <p className="text-sm text-gray-500">{project.company_name}</p>
+                      {project.company_contact && (
+                        <p className="text-xs text-gray-400 mt-1">负责人: {project.company_contact}</p>
+                      )}
+                    </div>
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                      {statusLabels[project.status]}
+                    </span>
+                  </div>
+
+                  <div className="mb-3">
+                    <ProgressStepper currentStatus={project.status} />
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center text-gray-600">
+                      <User className="w-4 h-4 mr-1" />
+                      <span>当前责任人: {responsibleName}</span>
+                    </div>
+                    <div className="text-gray-500">
+                      ¥{project.total_amount?.toLocaleString() || '0'}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex justify-between text-xs text-gray-400">
+                    <span>已报销: ¥{totalReimbursed.toLocaleString()}</span>
+                    <span>{format(new Date(project.created_at), 'yyyy-MM-dd')}</span>
+                  </div>
                 </div>
-                <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                  {statusLabels[project.status]}
-                </span>
-              </div>
+              )
+            })}
+          </div>
 
-              <div className="mb-3">
-                <ProgressStepper currentStatus={project.status} />
-              </div>
-
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center text-gray-600">
-                  <User className="w-4 h-4 mr-1" />
-                  <span>当前责任人: {responsibleName}</span>
-                </div>
-                <div className="text-gray-500">
-                  ¥{project.total_amount?.toLocaleString() || '0'}
-                </div>
-              </div>
-
-              <div className="mt-2 flex justify-between text-xs text-gray-400">
-                <span>已报销: ¥{totalReimbursed.toLocaleString()}</span>
-                <span>{format(new Date(project.created_at), 'yyyy-MM-dd')}</span>
+          {/* 分页 */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-gray-500">
+                共 {totalCount} 条，第 {page} / {totalPages} 页
+              </p>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          )
-        })}
-      </div>
-
-      {filteredProjects.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          {search ? '没有找到匹配的项目' : '暂无项目'}
-        </div>
+          )}
+        </>
       )}
     </div>
   )

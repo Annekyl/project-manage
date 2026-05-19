@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { UserPlus, ChevronLeft, ChevronRight, X } from 'lucide-react'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('users')
@@ -14,29 +14,41 @@ export default function AdminPage() {
   const [logFilter, setLogFilter] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [newUser, setNewUser] = useState({ email: '', password: '', name: '' })
-  const [page, setPage] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [userPage, setUserPage] = useState(1)
+  const [userTotalCount, setUserTotalCount] = useState(0)
+  const [logPage, setLogPage] = useState(1)
+  const [logTotalCount, setLogTotalCount] = useState(0)
   const [detailData, setDetailData] = useState(null)
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [userPage])
 
   useEffect(() => {
     fetchLogs()
-  }, [page, logFilter])
+  }, [logPage, logFilter])
 
   async function fetchUsers() {
-    const { data } = await supabase
+    setLoading(true)
+    const from = (userPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    const { data, count, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
-    if (data) setUsers(data)
+      .range(from, to)
+
+    if (!error && data) {
+      setUsers(data)
+      setUserTotalCount(count || 0)
+    }
+    setLoading(false)
   }
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
-    const from = (page - 1) * PAGE_SIZE
+    const from = (logPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
     let query = supabase
@@ -52,10 +64,10 @@ export default function AdminPage() {
     const { data, count, error } = await query
     if (!error && data) {
       setLogs(data)
-      setTotalCount(count || 0)
+      setLogTotalCount(count || 0)
     }
     setLoading(false)
-  }, [page, logFilter])
+  }, [logPage, logFilter])
 
   async function handleRoleChange(userId, newRole) {
     const { error } = await supabase
@@ -95,9 +107,8 @@ export default function AdminPage() {
     }
   }
 
-  if (loading && activeTab === 'users') {
-    return <div className="flex items-center justify-center h-64">加载中...</div>
-  }
+  const userTotalPages = Math.ceil(userTotalCount / PAGE_SIZE)
+  const logTotalPages = Math.ceil(logTotalCount / PAGE_SIZE)
 
   return (
     <div>
@@ -146,46 +157,75 @@ export default function AdminPage() {
           </div>
 
           <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">注册时间</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                    {user.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                    {user.id.slice(0, 8)}...
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={user.role}
-                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                    >
-                      <option value="member">成员</option>
-                      <option value="admin">管理员</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(user.created_at), 'yyyy-MM-dd HH:mm')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    -
-                  </td>
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">加载中...</div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">注册时间</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                      {user.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                      {user.id.slice(0, 8)}...
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                        className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      >
+                        <option value="member">成员</option>
+                        <option value="admin">管理员</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(user.created_at), 'yyyy-MM-dd HH:mm')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      -
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            )}
+          </div>
+
+          {/* 用户列表分页 */}
+          {userTotalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-gray-500">
+                共 {userTotalCount} 条，第 {userPage} / {userTotalPages} 页
+              </p>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                  disabled={userPage === 1}
+                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))}
+                  disabled={userPage >= userTotalPages}
+                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
       </div>
       )}
 
@@ -254,7 +294,7 @@ export default function AdminPage() {
             <input
               type="text"
               value={logFilter}
-              onChange={(e) => { setLogFilter(e.target.value); setPage(1) }}
+              onChange={(e) => { setLogFilter(e.target.value); setLogPage(1) }}
               placeholder="按项目 ID 筛选..."
               className="w-full max-w-md rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
@@ -313,22 +353,22 @@ export default function AdminPage() {
           </div>
 
           {/* 分页 */}
-          {totalCount > PAGE_SIZE && (
+          {logTotalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
               <p className="text-sm text-gray-500">
-                共 {totalCount} 条，第 {page} / {Math.ceil(totalCount / PAGE_SIZE)} 页
+                共 {logTotalCount} 条，第 {logPage} / {logTotalPages} 页
               </p>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
+                  onClick={() => setLogPage(p => Math.max(1, p - 1))}
+                  disabled={logPage === 1}
                   className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setPage(p => Math.min(Math.ceil(totalCount / PAGE_SIZE), p + 1))}
-                  disabled={page >= Math.ceil(totalCount / PAGE_SIZE)}
+                  onClick={() => setLogPage(p => Math.min(logTotalPages, p + 1))}
+                  disabled={logPage >= logTotalPages}
                   className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="w-4 h-4" />

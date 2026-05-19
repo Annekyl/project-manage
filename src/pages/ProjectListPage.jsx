@@ -1,21 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjects, useCreateProject, useUpdateProject } from '../hooks/useProjects'
 import { useAuth } from '../hooks/useAuth'
 import { useInitContract } from '../hooks/useContract'
 import { useDeleteProject } from '../hooks/useDeleteProject'
-import { Plus, Search, Trash2, Pencil } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
+const PAGE_SIZE = 4
+
 export default function ProjectListPage() {
-  const { data: projects, isLoading } = useProjects()
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const { isAdmin } = useAuth()
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()
   const deleteProject = useDeleteProject()
   const initContract = useInitContract()
-  const [search, setSearch] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, projectId: null, projectName: '' })
   const [editProject, setEditProject] = useState(null)
@@ -27,15 +30,18 @@ export default function ProjectListPage() {
   })
   const navigate = useNavigate()
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-64">加载中...</div>
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
-  const filteredProjects = projects?.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.company_name.toLowerCase().includes(search.toLowerCase())
-  ) || []
+  const { data, isLoading } = useProjects({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
+  const projects = data?.data || []
+  const totalCount = data?.totalCount || 0
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   async function handleCreate(e) {
     e.preventDefault()
@@ -126,86 +132,113 @@ export default function ProjectListPage() {
 
       {/* 项目表格 */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">项目名称</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">企业名称</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">项目负责人</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">总金额</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">当前状态</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
-              {isAdmin && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredProjects.map((project) => (
-              <tr
-                key={project.id}
-                onClick={() => navigate(`/projects/${project.id}`)}
-                className="hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="font-medium text-gray-900">{project.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  {project.company_name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  {project.company_contact || '未指定'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  ¥{project.total_amount?.toLocaleString() || '0'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                    {statusLabels[project.status] || project.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {format(new Date(project.created_at), 'yyyy-MM-dd')}
-                </td>
-                {isAdmin && (
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditProject({
-                          id: project.id,
-                          name: project.name,
-                          company_name: project.company_name,
-                          company_contact: project.company_contact || '',
-                          total_amount: project.total_amount?.toString() || ''
-                        })
-                      }}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                      title="编辑项目"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDeleteConfirm({ open: true, projectId: project.id, projectName: project.name })
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                      title="删除项目"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {filteredProjects.length === 0 && (
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-500">加载中...</div>
+        ) : projects.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            {search ? '没有找到匹配的项目' : '暂无项目'}
+            {debouncedSearch ? '没有找到匹配的项目' : '暂无项目'}
           </div>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">项目名称</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">企业名称</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">项目负责人</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">总金额</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">当前状态</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
+                {isAdmin && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {projects.map((project) => (
+                <tr
+                  key={project.id}
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                  className="hover:bg-gray-50 cursor-pointer"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="font-medium text-gray-900">{project.name}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                    {project.company_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                    {project.company_contact || '未指定'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                    ¥{project.total_amount?.toLocaleString() || '0'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                      {statusLabels[project.status] || project.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {format(new Date(project.created_at), 'yyyy-MM-dd')}
+                  </td>
+                  {isAdmin && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditProject({
+                            id: project.id,
+                            name: project.name,
+                            company_name: project.company_name,
+                            company_contact: project.company_contact || '',
+                            total_amount: project.total_amount?.toString() || ''
+                          })
+                        }}
+                        className="text-blue-600 hover:text-blue-800 mr-3"
+                        title="编辑项目"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirm({ open: true, projectId: project.id, projectName: project.name })
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                        title="删除项目"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
+
+      {/* 分页 */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-gray-500">
+            共 {totalCount} 条，第 {page} / {totalPages} 页
+          </p>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 删除确认弹窗 */}
       {deleteConfirm.open && (
