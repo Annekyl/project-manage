@@ -22,29 +22,32 @@ export default function ProgressStepper({ currentStatus }) {
           <div key={step.key} className="flex items-center flex-1">
             <div className="flex flex-col items-center">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  isCompleted
-                    ? 'bg-green-500 text-white'
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white"
+                style={{
+                  background: isCompleted
+                    ? 'var(--success)'
                     : isCurrent
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
+                    ? 'var(--accent)'
+                    : 'var(--bg-table-head)',
+                  color: isCompleted || isCurrent ? '#fff' : 'var(--text-dim)',
+                }}
               >
                 {isCompleted ? <Check className="w-4 h-4" /> : index + 1}
               </div>
               <span
-                className={`text-xs mt-1 ${
-                  isCurrent ? 'text-blue-600 font-medium' : 'text-gray-500'
-                }`}
+                className="text-xs mt-1"
+                style={{
+                  color: isCurrent ? 'var(--accent)' : 'var(--text-dim)',
+                  fontWeight: isCurrent ? 600 : 400,
+                }}
               >
                 {step.label}
               </span>
             </div>
             {index < STEPS.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-2 ${
-                  isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                }`}
+                className="flex-1 h-0.5 mx-2"
+                style={{ background: isCompleted ? 'var(--success)' : 'var(--border)' }}
               />
             )}
           </div>

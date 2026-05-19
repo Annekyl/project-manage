@@ -26,14 +26,14 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState('contract')
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-64">加载中...</div>
+    return <div className="flex items-center justify-center h-64" style={{ color: 'var(--text-dim)' }}>加载中...</div>
   }
 
   if (error || !project) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">项目不存在或加载失败</p>
-        <button onClick={() => navigate('/')} className="mt-4 text-blue-600 hover:underline">
+        <p style={{ color: 'var(--danger)' }}>项目不存在或加载失败</p>
+        <button onClick={() => navigate('/')} className="mt-4 transition-colors" style={{ color: 'var(--accent)' }}>
           返回工作台
         </button>
       </div>
@@ -41,80 +41,43 @@ export default function ProjectDetailPage() {
   }
 
   const statusLabels = {
-    contract: '合同阶段',
-    payment: '打款阶段',
-    invoice: '开票阶段',
-    reimbursement: '报销阶段',
-    closure: '结题阶段',
-    completed: '已完成'
+    contract: '合同阶段', payment: '打款阶段', invoice: '开票阶段',
+    reimbursement: '报销阶段', closure: '结题阶段', completed: '已完成'
   }
 
-  const totalReimbursed = project.reimbursements?.reduce(
-    (sum, r) => sum + (r.amount || 0),
-    0
-  ) || 0
-
   return (
-    <div>
-      {/* 返回按钮 */}
-      <button
-        onClick={() => navigate('/')}
-        className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
-      >
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        返回工作台
+    <div className="page-enter">
+      <button onClick={() => navigate('/')} className="flex items-center mb-4 transition-colors" style={{ color: 'var(--text-dim)' }}>
+        <ArrowLeft className="w-4 h-4 mr-1" /> 返回工作台
       </button>
 
-      {/* 项目头部信息 */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div className="rounded-xl shadow-sm p-6 mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-            <div className="flex items-center mt-2 space-x-4 text-sm text-gray-600">
-              <span className="flex items-center">
-                <Building2 className="w-4 h-4 mr-1" />
-                {project.company_name}
-              </span>
-              {project.company_contact && (
-                <span className="flex items-center">
-                  <User className="w-4 h-4 mr-1" />
-                  负责人: {project.company_contact}
-                </span>
-              )}
-              <span className="flex items-center">
-                <DollarSign className="w-4 h-4 mr-1" />
-                ¥{project.total_amount?.toLocaleString() || '0'}
-              </span>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-bright)' }}>{project.name}</h1>
+            <div className="flex items-center mt-2 space-x-4 text-sm" style={{ color: 'var(--text-dim)' }}>
+              <span className="flex items-center"><Building2 className="w-4 h-4 mr-1" />{project.company_name}</span>
+              {project.company_contact && <span className="flex items-center"><User className="w-4 h-4 mr-1" />负责人: {project.company_contact}</span>}
+              <span className="flex items-center"><DollarSign className="w-4 h-4 mr-1" />¥{project.total_amount?.toLocaleString() || '0'}</span>
             </div>
           </div>
-          <span className="mt-2 lg:mt-0 px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
+          <span className="mt-2 lg:mt-0 px-3 py-1 text-sm font-medium rounded-full" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
             {statusLabels[project.status] || project.status}
           </span>
         </div>
-
         <ProgressStepper currentStatus={project.status} />
       </div>
 
-      {/* Tab 导航 */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b mb-6" style={{ borderColor: 'var(--border)' }}>
         <nav className="flex space-x-8">
           {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === tab.key
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} className="py-2.5 px-1 border-b-2 font-medium text-sm transition-colors" style={{ borderColor: activeTab === tab.key ? 'var(--accent)' : 'transparent', color: activeTab === tab.key ? 'var(--accent)' : 'var(--text-dim)' }}>
               {tab.label}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Tab 内容 */}
       <div>
         {activeTab === 'contract' && <ContractTab project={project} isAdmin={isAdmin} />}
         {activeTab === 'payment' && <PaymentTab project={project} isAdmin={isAdmin} />}

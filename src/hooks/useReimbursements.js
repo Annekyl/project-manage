@@ -5,15 +5,20 @@ export function useAddReimbursement(projectId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (values) => {
-      // 自动计算 seq
-      const { count } = await supabase
+      // 自动计算 seq：取当前最大值 + 1，避免并发竞态
+      const { data: maxRow } = await supabase
         .from('reimbursements')
-        .select('*', { count: 'exact', head: true })
+        .select('seq')
         .eq('project_id', projectId)
+        .order('seq', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const nextSeq = (maxRow?.seq || 0) + 1
 
       const { data, error } = await supabase
         .from('reimbursements')
-        .insert({ ...values, project_id: projectId, seq: (count || 0) + 1 })
+        .insert({ ...values, project_id: projectId, seq: nextSeq })
         .select()
         .single()
 

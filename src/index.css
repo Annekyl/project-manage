@@ -1,3 +1,187 @@
 @import "tailwindcss";
 
-/* 自定义样式 */
+/* 暗色模式支持 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===== 主题色变量 ===== */
+:root {
+  /* 背景色 */
+  --bg: #f5f3ef;
+  --bg-card: #ffffff;
+  --bg-card-hover: #faf9f7;
+  --bg-sidebar: #faf9f7;
+  --bg-header: rgba(255, 255, 255, 0.85);
+  --bg-input: #ffffff;
+  --bg-table-head: #f0eeea;
+  --bg-table-row: #ffffff;
+  --bg-table-alt: #faf9f7;
+  --bg-modal-overlay: rgba(0, 0, 0, 0.35);
+
+  /* 文字色 */
+  --text: #3c3a36;
+  --text-dim: #8a8580;
+  --text-bright: #1a1918;
+  --text-muted: #b5b0aa;
+
+  /* 强调色 */
+  --accent: #2e7d6f;
+  --accent-hover: #236b5e;
+  --accent-light: rgba(46, 125, 111, 0.08);
+  --accent2: #b8860b;
+  --accent3: #5a8a6a;
+  --accent4: #c0564b;
+  --accent5: #c49a3c;
+
+  /* 状态色 */
+  --success: #5a8a6a;
+  --success-light: rgba(90, 138, 106, 0.08);
+  --warning: #c49a3c;
+  --warning-light: rgba(196, 154, 60, 0.08);
+  --danger: #c0564b;
+  --danger-light: rgba(192, 86, 75, 0.08);
+  --info: #2e7d6f;
+  --info-light: rgba(46, 125, 111, 0.08);
+
+  /* 边框和阴影 */
+  --border: rgba(60, 58, 54, 0.1);
+  --border-light: rgba(60, 58, 54, 0.05);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+
+  /* 渐变 */
+  --gradient-primary: linear-gradient(135deg, #2e7d6f, #3a9d8c);
+  --gradient-success: linear-gradient(135deg, #5a8a6a, #78b08a);
+  --gradient-warning: linear-gradient(135deg, #c49a3c, #dbb557);
+  --gradient-danger: linear-gradient(135deg, #c0564b, #d9756b);
+
+  /* 圆角 */
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-xs: 8px;
+}
+
+/* ===== 暗色主题 ===== */
+.dark {
+  --bg: #1a1916;
+  --bg-card: rgba(30, 29, 26, 0.85);
+  --bg-card-hover: rgba(38, 36, 32, 0.9);
+  --bg-sidebar: rgba(24, 23, 20, 0.95);
+  --bg-header: rgba(24, 23, 20, 0.85);
+  --bg-input: rgba(30, 29, 26, 0.6);
+  --bg-table-head: rgba(35, 33, 30, 0.8);
+  --bg-table-row: rgba(30, 29, 26, 0.4);
+  --bg-table-alt: rgba(26, 25, 22, 0.6);
+  --bg-modal-overlay: rgba(0, 0, 0, 0.55);
+
+  --text: #c5c0b8;
+  --text-dim: #7a756d;
+  --text-bright: #ece8e0;
+  --text-muted: #524f4a;
+
+  --accent: #5cb8a6;
+  --accent-hover: #74c8b8;
+  --accent-light: rgba(92, 184, 166, 0.1);
+  --accent2: #d4a843;
+  --accent3: #78b08a;
+  --accent4: #d9756b;
+  --accent5: #dbb557;
+
+  --success: #78b08a;
+  --success-light: rgba(120, 176, 138, 0.1);
+  --warning: #dbb557;
+  --warning-light: rgba(219, 181, 87, 0.1);
+  --danger: #d9756b;
+  --danger-light: rgba(217, 117, 107, 0.1);
+  --info: #5cb8a6;
+  --info-light: rgba(92, 184, 166, 0.1);
+
+  --border: rgba(197, 192, 184, 0.1);
+  --border-light: rgba(197, 192, 184, 0.05);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  --gradient-primary: linear-gradient(135deg, #5cb8a6, #4da896);
+  --gradient-success: linear-gradient(135deg, #78b08a, #6aa47c);
+  --gradient-warning: linear-gradient(135deg, #dbb557, #c9a34b);
+  --gradient-danger: linear-gradient(135deg, #d9756b, #c9675d);
+}
+
+/* ===== 全局基础 ===== */
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* ===== 弹窗动画 ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.modal-enter {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.card-animate {
+  animation: slideUp 0.3s ease-out;
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+.page-enter {
+  animation: slideUp 0.25s ease-out;
+}
+
+/* ===== 按钮过渡 ===== */
+.btn-transition {
+  transition: all 0.2s ease;
+}
+
+.btn-transition:active {
+  transform: scale(0.97);
+}
+
+/* ===== 自定义滚动条 ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* ===== 输入框暗色模式适配 ===== */
+.dark input:not([disabled]),
+.dark select:not([disabled]),
+.dark textarea:not([disabled]) {
+  background-color: var(--bg-input);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-muted);
+}

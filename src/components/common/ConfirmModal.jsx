@@ -11,28 +11,31 @@ export default function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50" onClick={onCancel} />
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={onCancel} />
+      <div className="relative rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 modal-enter" style={{ background: 'var(--bg-card)' }}>
         <button
           onClick={onCancel}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 right-4 p-1 rounded-lg transition-colors"
+          style={{ color: 'var(--text-muted)' }}
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
-        <p className="text-gray-600 mb-6">{message}</p>
+        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-bright)' }}>{title}</h3>
+        <p className="mb-6" style={{ color: 'var(--text-dim)' }}>{message}</p>
 
         <div className="flex justify-end space-x-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition"
+            style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}
           >
             取消
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            className="px-4 py-2.5 text-sm font-medium text-white rounded-xl btn-transition"
+            style={{ background: 'var(--gradient-primary)' }}
           >
             确认提交
           </button>

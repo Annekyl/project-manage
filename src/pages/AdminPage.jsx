@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../utils/supabase'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
-import { UserPlus, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { UserPlus, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
 
 const PAGE_SIZE = 10
 
@@ -20,29 +20,15 @@ export default function AdminPage() {
   const [logTotalCount, setLogTotalCount] = useState(0)
   const [detailData, setDetailData] = useState(null)
 
-  useEffect(() => {
-    fetchUsers()
-  }, [userPage])
-
-  useEffect(() => {
-    fetchLogs()
-  }, [logPage, logFilter])
+  useEffect(() => { fetchUsers() }, [userPage])
+  useEffect(() => { fetchLogs() }, [logPage, logFilter])
 
   async function fetchUsers() {
     setLoading(true)
     const from = (userPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
-
-    const { data, count, error } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(from, to)
-
-    if (!error && data) {
-      setUsers(data)
-      setUserTotalCount(count || 0)
-    }
+    const { data, count, error } = await supabase.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to)
+    if (!error && data) { setUsers(data); setUserTotalCount(count || 0) }
     setLoading(false)
   }
 
@@ -50,96 +36,50 @@ export default function AdminPage() {
     setLoading(true)
     const from = (logPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
-
-    let query = supabase
-      .from('audit_logs')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(from, to)
-
-    if (logFilter) {
-      query = query.eq('project_id', logFilter)
-    }
-
+    let query = supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to)
+    if (logFilter) query = query.eq('project_id', logFilter)
     const { data, count, error } = await query
-    if (!error && data) {
-      setLogs(data)
-      setLogTotalCount(count || 0)
-    }
+    if (!error && data) { setLogs(data); setLogTotalCount(count || 0) }
     setLoading(false)
   }, [logPage, logFilter])
 
   async function handleRoleChange(userId, newRole) {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', userId)
-
-    if (error) {
-      toast.error('更新失败: ' + error.message)
-    } else {
-      toast.success('角色已更新')
-      fetchUsers()
-    }
+    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
+    if (error) toast.error('更新失败: ' + error.message)
+    else { toast.success('角色已更新'); fetchUsers() }
   }
 
   async function handleCreateUser(e) {
     e.preventDefault()
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: newUser.email,
-        password: newUser.password,
-        options: {
-          data: {
-            name: newUser.name
-          }
-        }
-      })
-
+      const { error } = await supabase.auth.signUp({ email: newUser.email, password: newUser.password, options: { data: { name: newUser.name } } })
       if (error) throw error
-
       toast.success('用户创建成功，请用户查收确认邮件')
       setShowCreateUser(false)
       setNewUser({ email: '', password: '', name: '' })
       fetchUsers()
-    } catch (error) {
-      toast.error('创建失败: ' + error.message)
-    }
+    } catch (error) { toast.error('创建失败: ' + error.message) }
   }
 
   const userTotalPages = Math.ceil(userTotalCount / PAGE_SIZE)
   const logTotalPages = Math.ceil(logTotalCount / PAGE_SIZE)
+  const inputStyle = { background: 'var(--bg-input)', borderColor: 'var(--border)', color: 'var(--text)' }
 
   return (
-    <div>
+    <div className="page-enter">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">系统管理</h1>
-        <p className="text-gray-600">用户管理和审计日志</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-bright)' }}>系统管理</h1>
+        <p className="mt-1" style={{ color: 'var(--text-dim)' }}>用户管理和审计日志</p>
       </div>
 
       {/* Tab 导航 */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b mb-6" style={{ borderColor: 'var(--border)' }}>
         <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'users'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            用户管理
-          </button>
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'logs'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            审计日志
-          </button>
+          {['users', 'logs'].map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className="py-2.5 px-1 border-b-2 font-medium text-sm transition-colors" style={{ borderColor: activeTab === tab ? 'var(--accent)' : 'transparent', color: activeTab === tab ? 'var(--accent)' : 'var(--text-dim)' }}>
+              {tab === 'users' ? '用户管理' : '审计日志'}
+            </button>
+          ))}
         </nav>
       </div>
 
@@ -147,140 +87,71 @@ export default function AdminPage() {
       {activeTab === 'users' && (
         <div>
           <div className="flex justify-end mb-4">
-            <button
-              onClick={() => setShowCreateUser(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              创建用户
+            <button onClick={() => setShowCreateUser(true)} className="flex items-center px-4 py-2.5 text-white rounded-xl shadow-md btn-transition" style={{ background: 'var(--gradient-primary)' }}>
+              <UserPlus className="w-4 h-4 mr-2" /> 创建用户
             </button>
           </div>
-
-          <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
             {loading ? (
-              <div className="text-center py-8 text-gray-500">加载中...</div>
+              <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-dim)' }}><Loader2 className="w-5 h-5 mr-2 spinner" />加载中...</div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">注册时间</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                      {user.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                      {user.id.slice(0, 8)}...
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                      >
-                        <option value="member">成员</option>
-                        <option value="admin">管理员</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(user.created_at), 'yyyy-MM-dd HH:mm')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      -
-                    </td>
+              <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>
+                <thead style={{ background: 'var(--bg-table-head)' }}>
+                  <tr>
+                    {['姓名', 'ID', '角色', '注册时间', '操作'].map(h => (
+                      <th key={h} className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y" style={{ borderColor: 'var(--border-light)' }}>
+                  {users.map((user) => (
+                    <tr key={user.id} className="transition-colors" style={{ background: 'var(--bg-table-row)' }}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3" style={{ background: 'var(--gradient-primary)' }}>{user.name?.[0] || '?'}</div>
+                          <span className="font-medium" style={{ color: 'var(--text-bright)' }}>{user.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>{user.id.slice(0, 8)}...</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select value={user.role} onChange={(e) => handleRoleChange(user.id, e.target.value)} className="rounded-lg shadow-sm text-sm transition-all" style={inputStyle}>
+                          <option value="member">成员</option>
+                          <option value="admin">管理员</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>{format(new Date(user.created_at), 'yyyy-MM-dd HH:mm')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>-</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
-
-          {/* 用户列表分页 */}
           {userTotalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-gray-500">
-                共 {userTotalCount} 条，第 {userPage} / {userTotalPages} 页
-              </p>
+              <p className="text-sm" style={{ color: 'var(--text-dim)' }}>共 {userTotalCount} 条，第 {userPage} / {userTotalPages} 页</p>
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setUserPage(p => Math.max(1, p - 1))}
-                  disabled={userPage === 1}
-                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))}
-                  disabled={userPage >= userTotalPages}
-                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronLeft className="w-4 h-4" /></button>
+                <button onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))} disabled={userPage >= userTotalPages} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
           )}
-      </div>
+        </div>
       )}
 
       {/* 创建用户弹窗 */}
       {showCreateUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateUser(false)} />
-          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <h2 className="text-lg font-semibold mb-4">创建新用户</h2>
+          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={() => setShowCreateUser(false)} />
+          <div className="relative rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 modal-enter" style={{ background: 'var(--bg-card)' }}>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-bright)' }}>创建新用户</h2>
             <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">姓名 *</label>
-                <input
-                  type="text"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  required
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">邮箱 *</label>
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  required
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">密码 *</label>
-                <input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  required
-                  minLength={6}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
+              <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>姓名 *</label><input type="text" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
+              <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>邮箱 *</label><input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
+              <div><label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>密码 *</label><input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required minLength={6} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} /></div>
               <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateUser(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                >
-                  创建
-                </button>
+                <button type="button" onClick={() => setShowCreateUser(false)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
+                <button type="submit" className="px-4 py-2.5 text-sm font-medium text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>创建</button>
               </div>
             </form>
           </div>
@@ -291,88 +162,42 @@ export default function AdminPage() {
       {activeTab === 'logs' && (
         <div>
           <div className="mb-4">
-            <input
-              type="text"
-              value={logFilter}
-              onChange={(e) => { setLogFilter(e.target.value); setLogPage(1) }}
-              placeholder="按项目 ID 筛选..."
-              className="w-full max-w-md rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
+            <input type="text" value={logFilter} onChange={(e) => { setLogFilter(e.target.value); setLogPage(1) }} placeholder="按项目 ID 筛选..." className="w-full max-w-md rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
-
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
+            <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>
+              <thead style={{ background: 'var(--bg-table-head)' }}>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">时间</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作表</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">动作</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">记录 ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">详情</th>
+                  {['时间', '操作表', '动作', '记录 ID', '详情'].map(h => (
+                    <th key={h} className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y" style={{ borderColor: 'var(--border-light)' }}>
                 {loading ? (
-                  <tr><td colSpan={5} className="text-center py-8 text-gray-500">加载中...</td></tr>
+                  <tr><td colSpan={5} className="text-center py-12" style={{ color: 'var(--text-dim)' }}><div className="flex items-center justify-center"><Loader2 className="w-5 h-5 mr-2 spinner" />加载中...</div></td></tr>
                 ) : logs.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center py-8 text-gray-500">暂无日志记录</td></tr>
-                ) : (
-                  logs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {log.table_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          log.action === 'INSERT'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                        {log.record_id?.slice(0, 8)}...
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        <button
-                          onClick={() => setDetailData(log.new_data)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          查看数据
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                  <tr><td colSpan={5} className="text-center py-12" style={{ color: 'var(--text-muted)' }}>暂无日志记录</td></tr>
+                ) : logs.map((log) => (
+                  <tr key={log.id} className="transition-colors" style={{ background: 'var(--bg-table-row)' }}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>{format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--text-bright)' }}>{log.table_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2.5 py-1 text-xs font-medium rounded-full" style={{ background: log.action === 'INSERT' ? 'var(--success-light)' : 'var(--accent-light)', color: log.action === 'INSERT' ? 'var(--success)' : 'var(--accent)' }}>{log.action}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>{log.record_id?.slice(0, 8)}...</td>
+                    <td className="px-6 py-4 text-sm"><button onClick={() => setDetailData(log.new_data)} className="font-medium transition-colors" style={{ color: 'var(--accent)' }}>查看数据</button></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-
-          {/* 分页 */}
           {logTotalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-gray-500">
-                共 {logTotalCount} 条，第 {logPage} / {logTotalPages} 页
-              </p>
+              <p className="text-sm" style={{ color: 'var(--text-dim)' }}>共 {logTotalCount} 条，第 {logPage} / {logTotalPages} 页</p>
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setLogPage(p => Math.max(1, p - 1))}
-                  disabled={logPage === 1}
-                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setLogPage(p => Math.min(logTotalPages, p + 1))}
-                  disabled={logPage >= logTotalPages}
-                  className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                <button onClick={() => setLogPage(p => Math.max(1, p - 1))} disabled={logPage === 1} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronLeft className="w-4 h-4" /></button>
+                <button onClick={() => setLogPage(p => Math.min(logTotalPages, p + 1))} disabled={logPage >= logTotalPages} className="p-2 rounded-lg border disabled:opacity-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
           )}
@@ -382,16 +207,14 @@ export default function AdminPage() {
       {/* 数据详情弹窗 */}
       {detailData !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setDetailData(null)} />
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">数据详情</h3>
-              <button onClick={() => setDetailData(null)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
+          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--bg-modal-overlay)' }} onClick={() => setDetailData(null)} />
+          <div className="relative rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col modal-enter" style={{ background: 'var(--bg-card)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-light)' }}>
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--text-bright)' }}>数据详情</h3>
+              <button onClick={() => setDetailData(null)} className="p-1 rounded-lg transition-colors" style={{ color: 'var(--text-dim)' }}><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-4 overflow-auto flex-1">
-              <pre className="text-sm bg-gray-50 p-4 rounded-lg whitespace-pre-wrap break-words">
+              <pre className="text-sm p-4 rounded-xl whitespace-pre-wrap break-words font-mono" style={{ background: 'var(--bg-table-head)', color: 'var(--text)', border: '1px solid var(--border-light)' }}>
                 {JSON.stringify(detailData, null, 2)}
               </pre>
             </div>

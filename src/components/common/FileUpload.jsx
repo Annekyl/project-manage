@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Upload, File, ExternalLink, X } from 'lucide-react'
+import { Upload, File, ExternalLink } from 'lucide-react'
 import { uploadFile, getFileUrl } from '../../utils/storage'
 import toast from 'react-hot-toast'
 
@@ -10,6 +10,21 @@ export default function FileUpload({ value, onChange, folder, disabled = false }
   async function handleFileSelect(e) {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // 文件大小限制 20MB
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('文件大小不能超过 20MB')
+      e.target.value = ''
+      return
+    }
+    // 文件类型限制
+    const allowed = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.gif', '.zip', '.rar']
+    const ext = '.' + file.name.split('.').pop().toLowerCase()
+    if (!allowed.includes(ext)) {
+      toast.error('不支持的文件类型，允许: ' + allowed.join(', '))
+      e.target.value = ''
+      return
+    }
 
     setUploading(true)
     try {
@@ -35,35 +50,20 @@ export default function FileUpload({ value, onChange, folder, disabled = false }
 
   if (value) {
     return (
-      <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-        <File className="w-4 h-4 text-blue-500" />
-        <span className="text-sm text-gray-700 flex-1 truncate">
+      <div className="flex items-center space-x-2 p-2 rounded-lg" style={{ background: 'var(--bg-table-head)' }}>
+        <File className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+        <span className="text-sm flex-1 truncate" style={{ color: 'var(--text)' }}>
           {value.split('/').pop()}
         </span>
-        <button
-          type="button"
-          onClick={handleView}
-          className="text-blue-600 hover:text-blue-800"
-          title="查看文件"
-        >
+        <button type="button" onClick={handleView} className="transition-colors" style={{ color: 'var(--accent)' }} title="查看文件">
           <ExternalLink className="w-4 h-4" />
         </button>
         {!disabled && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="text-gray-500 hover:text-gray-700"
-            title="重新上传"
-          >
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="transition-colors" style={{ color: 'var(--text-dim)' }} title="重新上传">
             <Upload className="w-4 h-4" />
           </button>
         )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+        <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" />
       </div>
     )
   }
@@ -71,23 +71,18 @@ export default function FileUpload({ value, onChange, folder, disabled = false }
   return (
     <div
       onClick={() => !disabled && !uploading && fileInputRef.current?.click()}
-      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-        disabled
-          ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-          : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-      }`}
+      className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"
+      style={{
+        borderColor: disabled ? 'var(--border-light)' : 'var(--border)',
+        background: disabled ? 'var(--bg-table-head)' : 'transparent',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
     >
-      <Upload className="w-6 h-6 mx-auto text-gray-400 mb-2" />
-      <p className="text-sm text-gray-500">
+      <Upload className="w-6 h-6 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+      <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
         {uploading ? '上传中...' : '点击或拖拽文件上传'}
       </p>
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileSelect}
-        disabled={disabled || uploading}
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" onChange={handleFileSelect} disabled={disabled || uploading} className="hidden" />
     </div>
   )
 }

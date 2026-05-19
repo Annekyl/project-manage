@@ -54,7 +54,13 @@ export function useDeleteProject() {
           .remove(filePaths)
       }
 
-      // 3. 删除数据库记录（由于外键级联删除，删除项目会自动删除关联记录）
+      // 3. 先删除审计日志（该表外键未设级联删除）
+      await supabase
+        .from('audit_logs')
+        .delete()
+        .eq('project_id', projectId)
+
+      // 4. 删除项目（其余子表有级联删除）
       const { error } = await supabase
         .from('projects')
         .delete()

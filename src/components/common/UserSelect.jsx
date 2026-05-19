@@ -21,14 +21,19 @@ export default function UserSelect({ value, onChange, disabled = false, placehol
     setLoading(false)
   }
 
-  if (loading) return <div className="text-sm text-gray-500">加载中...</div>
+  if (loading) return <div className="text-sm" style={{ color: 'var(--text-dim)' }}>加载中...</div>
 
   return (
     <select
       value={value || ''}
       onChange={(e) => onChange(e.target.value || null)}
       disabled={disabled}
-      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
+      style={{
+        background: disabled ? 'var(--bg-table-head)' : 'var(--bg-input)',
+        borderColor: 'var(--border)',
+        color: disabled ? 'var(--text-dim)' : 'var(--text)',
+      }}
     >
       <option value="">{placeholder}</option>
       {users.map((user) => (
