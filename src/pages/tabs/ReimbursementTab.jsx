@@ -20,6 +20,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
 
   const [showForm, setShowForm] = useState(false)
   const [closureConfirm, setClosureConfirm] = useState(false)
+  const [confirmModal, setConfirmModal] = useState({ open: false, id: null, seq: null, amount: 0 })
   const [formData, setFormData] = useState({
     amount: '',
     responsible_id: currentUserId || '',
@@ -63,9 +64,12 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
     }
   }
 
-  function handleConfirm(id) {
-    confirmReimbursement.mutate(id, {
-      onSuccess: () => toast.success('已确认到账')
+  function handleConfirm() {
+    confirmReimbursement.mutate(confirmModal.id, {
+      onSuccess: () => {
+        toast.success('已确认到账')
+        setConfirmModal({ open: false, id: null, seq: null, amount: 0 })
+      }
     })
   }
 
@@ -188,9 +192,9 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
                   </div>
                   {isAdmin && !r.received_confirmed && (
                     <button
-                      onClick={() => handleConfirm(r.id)}
-                      className="text-sm transition-colors"
-                      style={{ color: 'var(--accent)' }}
+                      onClick={() => setConfirmModal({ open: true, id: r.id, seq: r.seq, amount: r.amount || 0 })}
+                      className="px-3 py-1.5 text-sm font-medium text-white rounded-xl btn-transition"
+                      style={{ background: 'var(--gradient-success)' }}
                     >
                       确认到账
                     </button>
@@ -316,6 +320,14 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmModal.open}
+        title="确认到账"
+        message={`确认第${confirmModal.seq}次报销 ¥${confirmModal.amount.toLocaleString()} 已到账？确认后将无法撤销。`}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmModal({ open: false, id: null, seq: null, amount: 0 })}
+      />
     </div>
   )
 }
