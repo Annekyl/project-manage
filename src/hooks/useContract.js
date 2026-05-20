@@ -35,16 +35,14 @@ export function useUpdateContract(projectId) {
   })
 }
 
-// 锁定某子环节（提交确认）
-export function useLockContractSection(projectId) {
+// 锁定合同
+export function useLockContract(projectId) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ contractId, section }) => {
-      // section: 'audit_sign' | 'sign_confirm' | 'stamp_upload' | 'send_out'
-      const lockColumn = section === 'sign_confirm' ? 'sign_locked' : `${section}_locked`
+    mutationFn: async (contractId) => {
       const { error } = await supabase
         .from('contracts')
-        .update({ [lockColumn]: true })
+        .update({ contract_locked: true })
         .eq('id', contractId)
       if (error) throw error
     },
@@ -53,15 +51,14 @@ export function useLockContractSection(projectId) {
   })
 }
 
-// 解锁某子环节（仅 admin）
-export function useUnlockContractSection(projectId) {
+// 解锁合同（仅 admin）
+export function useUnlockContract(projectId) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ contractId, section }) => {
-      const lockColumn = section === 'sign_confirm' ? 'sign_locked' : `${section}_locked`
+    mutationFn: async (contractId) => {
       const { error } = await supabase
         .from('contracts')
-        .update({ [lockColumn]: false })
+        .update({ contract_locked: false })
         .eq('id', contractId)
       if (error) throw error
     },

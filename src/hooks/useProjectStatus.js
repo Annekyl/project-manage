@@ -21,11 +21,7 @@ export function useUpdateProjectStatus(projectId) {
 // 检查合同阶段是否完成
 export function isContractComplete(contract) {
   if (!contract) return false
-  return (
-    contract.audit_sign_locked &&
-    contract.stamp_upload_locked &&
-    contract.send_out_locked
-  )
+  return contract.contract_locked
 }
 
 // 检查打款阶段是否完成
