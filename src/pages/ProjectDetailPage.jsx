@@ -82,6 +82,8 @@ export default function ProjectDetailPage() {
       `盖章时间: ${contract?.stamp_upload_completed_at || '-'}`,
       `合同份数: ${contract?.stamp_upload_count || '-'}`,
       `盖章扫描件: ${contract?.stamp_upload_scan_url ? '见附件' : '-'}`,
+      `上传至科研系统: ${contract?.uploaded_to_research_system ? '是' : '否'}`,
+      `财务老师通过: ${contract?.finance_approved ? '是' : '否'}`,
       '',
       '【寄出】',
       `责任人: ${contract?.send_out_responsible_name || '未指定'}`,

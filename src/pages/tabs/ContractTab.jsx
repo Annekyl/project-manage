@@ -55,6 +55,8 @@ export default function ContractTab({ project, section, isAdmin, currentUserId }
       stamp_upload_count: contract.stamp_upload_count || '',
       stamp_upload_scan_url: contract.stamp_upload_scan_url || '',
       stamp_upload_completed_at: contract.stamp_upload_completed_at || '',
+      uploaded_to_research_system: contract.uploaded_to_research_system ?? false,
+      finance_approved: contract.finance_approved ?? false,
     })
     setSendData({
       send_out_responsible_id: contract.send_out_responsible_id || currentUserId || '',
@@ -237,6 +239,34 @@ export default function ContractTab({ project, section, isAdmin, currentUserId }
           <div className="mt-4">
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>盖章扫描件</label>
             <FileUpload value={stampData.stamp_upload_scan_url} onChange={(v) => setStampData(p => ({ ...p, stamp_upload_scan_url: v }))} folder={`contracts/${project.id}/stamp_upload`} disabled={isLocked} />
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>是否上传至科研系统</label>
+              <select
+                value={stampData.uploaded_to_research_system ? 'yes' : 'no'}
+                onChange={(e) => setStampData(p => ({ ...p, uploaded_to_research_system: e.target.value === 'yes' }))}
+                disabled={isLocked}
+                className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
+                style={{ background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isLocked ? 'var(--text-dim)' : 'var(--text)' }}
+              >
+                <option value="no">否</option>
+                <option value="yes">是</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>财务老师是否通过</label>
+              <select
+                value={stampData.finance_approved ? 'yes' : 'no'}
+                onChange={(e) => setStampData(p => ({ ...p, finance_approved: e.target.value === 'yes' }))}
+                disabled={isLocked}
+                className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
+                style={{ background: isLocked ? 'var(--bg-table-head)' : 'var(--bg-input)', borderColor: 'var(--border)', color: isLocked ? 'var(--text-dim)' : 'var(--text)' }}
+              >
+                <option value="no">否</option>
+                <option value="yes">是</option>
+              </select>
+            </div>
           </div>
           <div className="mt-4 flex justify-end">
             {isLocked ? (

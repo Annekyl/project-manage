@@ -33,6 +33,7 @@ export default function ProjectListPage() {
   const [formData, setFormData] = useState({
     name: '',
     company_name: '',
+    project_number: '',
     total_amount: ''
   })
   const navigate = useNavigate()
@@ -60,7 +61,7 @@ export default function ProjectListPage() {
       await initContract.mutateAsync(project.id)
       toast.success('项目创建成功')
       setShowCreate(false)
-      setFormData({ name: '', company_name: '', total_amount: '' })
+      setFormData({ name: '', company_name: '', project_number: '', total_amount: '' })
       navigate(`/projects/${project.id}`)
     } catch (error) {
       toast.error('创建失败: ' + translateError(error.message))
@@ -85,6 +86,7 @@ export default function ProjectListPage() {
         updates: {
           name: editProject.name,
           company_name: editProject.company_name,
+          project_number: editProject.project_number,
           total_amount: Math.max(0, parseFloat(editProject.total_amount) || 0)
         }
       })
@@ -121,8 +123,8 @@ export default function ProjectListPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
-              const headers = ['项目名称', '项目ID', '企业名称', '总金额', '状态', '创建时间']
-              const rows = projects.map(p => [p.name, p.id, p.company_name, p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
+              const headers = ['项目名称', '项目ID', '项目编号', '企业名称', '总金额', '状态', '创建时间']
+              const rows = projects.map(p => [p.name, p.id, p.project_number || '', p.company_name, p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
               exportCsv('项目填报.csv', headers, rows)
             }}
             className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition"
@@ -183,6 +185,7 @@ export default function ProjectListPage() {
                 {[
                   { key: 'name', label: '项目名称' },
                   { key: 'id', label: '项目ID' },
+                  { key: 'project_number', label: '项目编号' },
                   { key: 'company_name', label: '企业名称' },
                   { key: 'total_amount', label: '总金额' },
                   { key: 'status', label: '当前状态' },
@@ -236,6 +239,21 @@ export default function ProjectListPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>
                     <span className="inline-flex items-center">
+                      {project.project_number || '-'}
+                      {project.project_number && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(project.project_number); toast.success('已复制项目编号') }}
+                          className="ml-1.5 inline-flex items-center transition-colors"
+                          style={{ color: 'var(--text-muted)' }}
+                          title="复制项目编号"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>
+                    <span className="inline-flex items-center">
                       {project.company_name}
                       <button
                         onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(project.company_name); toast.success('已复制企业名称') }}
@@ -266,6 +284,7 @@ export default function ProjectListPage() {
                           id: project.id,
                           name: project.name,
                           company_name: project.company_name,
+                          project_number: project.project_number || '',
                           total_amount: project.total_amount?.toString() || ''
                         })
                       }}
@@ -335,6 +354,10 @@ export default function ProjectListPage() {
             <input type="text" value={editProject?.company_name || ''} onChange={(e) => setEditProject({ ...editProject, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
           <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目编号</label>
+            <input type="text" value={editProject?.project_number || ''} onChange={(e) => setEditProject({ ...editProject, project_number: e.target.value })} placeholder="选填" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
             <input type="number" min="0" step="0.01" value={editProject?.total_amount || ''} onChange={(e) => setEditProject({ ...editProject, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
@@ -357,6 +380,10 @@ export default function ProjectListPage() {
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>企业名称 *</label>
             <input type="text" value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目编号</label>
+            <input type="text" value={formData.project_number} onChange={(e) => setFormData({ ...formData, project_number: e.target.value })} placeholder="选填" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>

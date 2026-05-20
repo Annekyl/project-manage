@@ -15,7 +15,7 @@ export function useProjects({ page = 1, pageSize = 10, search = '', status = '' 
         .range(from, to)
 
       if (search) {
-        query = query.or(`name.ilike.%${search}%,company_name.ilike.%${search}%`)
+        query = query.or(`name.ilike.%${search}%,company_name.ilike.%${search}%,project_number.ilike.%${search}%`)
       }
       if (status) {
         query = query.eq('status', status)
@@ -42,7 +42,7 @@ export function useProjectsWithDetails({ page = 1, pageSize = 10, search = '', s
         .range(from, to)
 
       if (search) {
-        query = query.or(`name.ilike.%${search}%,company_name.ilike.%${search}%`)
+        query = query.or(`name.ilike.%${search}%,company_name.ilike.%${search}%,project_number.ilike.%${search}%`)
       }
       if (status === 'completed') {
         query = query.eq('status', 'completed')
