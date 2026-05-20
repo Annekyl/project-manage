@@ -1,7 +1,9 @@
 import { Check } from 'lucide-react'
 
 const STEPS = [
-  { key: 'contract', label: '合同' },
+  { key: 'audit_sign', label: '审核签收' },
+  { key: 'stamp_upload', label: '盖章上传' },
+  { key: 'send_out', label: '寄出' },
   { key: 'payment_invoice', label: '打款开票' },
   { key: 'reimbursement', label: '报销' },
   { key: 'closure', label: '结题' },

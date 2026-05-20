@@ -65,10 +65,12 @@ export default function DashboardPage() {
     }
 
     return [
-      { key: 'contract', label: '合同', name: resolve(contract?.audit_sign_responsible_id || contract?.stamp_upload_responsible_id || contract?.send_out_responsible_id) },
-      { key: 'payment_invoice', label: '打款开票', name: resolve(payment?.claim_responsible_id || payment?.payment_responsible_id || invoice?.responsible_id) },
-      { key: 'reimbursement', label: '报销', name: resolve(project.reimbursements?.[0]?.responsible_id) },
-      { key: 'closure', label: '结题', name: resolve(closure?.responsible_id) },
+      { key: 'audit_sign', label: '审核签收', name: resolve(contract?.audit_sign_responsible_name || contract?.audit_sign_responsible_id) },
+      { key: 'stamp_upload', label: '盖章上传', name: resolve(contract?.stamp_upload_responsible_name || contract?.stamp_upload_responsible_id) },
+      { key: 'send_out', label: '寄出', name: resolve(contract?.send_out_responsible_name || contract?.send_out_responsible_id) },
+      { key: 'payment_invoice', label: '打款开票', name: resolve(payment?.claim_responsible_name || payment?.claim_responsible_id || invoice?.responsible_name || invoice?.responsible_id) },
+      { key: 'reimbursement', label: '报销', name: resolve(project.reimbursements?.[0]?.responsible_name || project.reimbursements?.[0]?.responsible_id) },
+      { key: 'closure', label: '结题', name: resolve(closure?.responsible_name || closure?.responsible_id) },
     ]
   }
 

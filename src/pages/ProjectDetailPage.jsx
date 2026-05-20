@@ -16,7 +16,9 @@ import { saveAs } from 'file-saver'
 import toast from 'react-hot-toast'
 
 const TABS = [
-  { key: 'contract', label: '合同' },
+  { key: 'audit_sign', label: '合同审核签收' },
+  { key: 'stamp_upload', label: '合同盖章上传' },
+  { key: 'send_out', label: '合同寄出' },
   { key: 'payment_invoice', label: '打款开票' },
   { key: 'reimbursement', label: '报销' },
   { key: 'closure', label: '结题' },
@@ -27,7 +29,7 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate()
   const { data: project, isLoading, error } = useProject(id)
   const { isAdmin, user } = useAuth()
-  const [activeTab, setActiveTab] = useState('contract')
+  const [activeTab, setActiveTab] = useState('audit_sign')
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64" style={{ color: 'var(--text-dim)' }}>加载中...</div>
@@ -66,16 +68,23 @@ export default function ProjectDetailPage() {
 
     // 2. 合同阶段
     zip.file('合同.txt', [
-      `责任人: ${contract?.audit_sign_responsible_id || '未指定'}`,
+      '【审核签收】',
+      `责任人: ${contract?.audit_sign_responsible_name || '未指定'}`,
       `审核时间: ${contract?.audit_sign_confirmed_at || '-'}`,
       `合同文件: ${contract?.audit_sign_file_url ? '见附件' : '-'}`,
-      `签收确认人: ${contract?.sign_confirm_responsible_id || '未指定'}`,
+      `签收确认人: ${contract?.sign_confirm_responsible_name || '未指定'}`,
       `客户确认时间: ${contract?.sign_confirmed_at || '-'}`,
       `签收截图: ${contract?.sign_screenshot_url ? '见附件' : '-'}`,
       `客户确认截图: ${contract?.sign_confirm_screenshot_url ? '见附件' : '-'}`,
+      '',
+      '【盖章上传】',
+      `责任人: ${contract?.stamp_upload_responsible_name || '未指定'}`,
       `盖章时间: ${contract?.stamp_upload_completed_at || '-'}`,
       `合同份数: ${contract?.stamp_upload_count || '-'}`,
       `盖章扫描件: ${contract?.stamp_upload_scan_url ? '见附件' : '-'}`,
+      '',
+      '【寄出】',
+      `责任人: ${contract?.send_out_responsible_name || '未指定'}`,
       `寄出时间: ${contract?.sent_at || '-'}`,
       `快递单号: ${contract?.tracking_number || '-'}`,
       `快递公司: ${contract?.courier || '-'}`,
@@ -141,7 +150,6 @@ export default function ProjectDetailPage() {
       { path: contract?.sign_confirm_screenshot_url, label: '客户确认截图' },
       { path: contract?.stamp_upload_scan_url, label: '盖章扫描件' },
       { path: payment?.payment_screenshot_url, label: '打款截图' },
-      { path: invoice?.invoice_file_url, label: '发票文件' },
       { path: closure?.report_file_url, label: '结题报告' },
     ].filter(f => f.path)
 
@@ -214,7 +222,9 @@ export default function ProjectDetailPage() {
       </div>
 
       <div>
-        {activeTab === 'contract' && <ContractTab project={project} isAdmin={isAdmin} currentUserId={user?.id} />}
+        {activeTab === 'audit_sign' && <ContractTab project={project} section="audit_sign" isAdmin={isAdmin} currentUserId={user?.id} />}
+        {activeTab === 'stamp_upload' && <ContractTab project={project} section="stamp_upload" isAdmin={isAdmin} currentUserId={user?.id} />}
+        {activeTab === 'send_out' && <ContractTab project={project} section="send_out" isAdmin={isAdmin} currentUserId={user?.id} />}
         {activeTab === 'payment_invoice' && (
           <div className="space-y-6">
             <PaymentTab project={project} isAdmin={isAdmin} currentUserId={user?.id} />
