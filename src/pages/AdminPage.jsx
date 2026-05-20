@@ -169,8 +169,8 @@ export default function AdminPage() {
           <div className="flex justify-end mb-4 space-x-2">
             <button
               onClick={() => {
-                const headers = ['姓名', 'ID', '角色', '注册时间']
-                const rows = users.map(u => [u.name, u.id, u.role === 'admin' ? '管理员' : '成员', u.created_at])
+                const headers = ['姓名', '邮箱', 'ID', '角色', '注册时间']
+                const rows = users.map(u => [u.name, u.email || '', u.id, u.role === 'admin' ? '管理员' : '成员', u.created_at])
                 exportCsv('用户列表.csv', headers, rows)
               }}
               className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition"
@@ -191,7 +191,7 @@ export default function AdminPage() {
               <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>
                 <thead style={{ background: 'var(--bg-table-head)' }}>
                   <tr>
-                    {['姓名', 'ID', '角色', '注册时间', '操作'].map(h => (
+                    {['姓名', '邮箱', 'ID', '角色', '注册时间', '操作'].map(h => (
                       <th key={h} className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>{h}</th>
                     ))}
                   </tr>
@@ -230,6 +230,7 @@ export default function AdminPage() {
                           </div>
                         )}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>{user.email || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>{user.id.slice(0, 8)}...</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select value={user.role} onChange={(e) => handleRoleChange(user.id, user.name, e.target.value)} className="rounded-lg shadow-sm text-sm transition-all" style={inputStyle}>

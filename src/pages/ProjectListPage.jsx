@@ -116,15 +116,15 @@ export default function ProjectListPage() {
     <div className="page-enter">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-bright)' }}>项目列表</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-bright)' }}>项目填报</h1>
           <p className="mt-1" style={{ color: 'var(--text-dim)' }}>管理所有产学研项目</p>
         </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
-              const headers = ['项目名称', '企业名称', '负责人', '总金额', '状态', '创建时间']
-              const rows = projects.map(p => [p.name, p.company_name, p.company_contact || '', p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
-              exportCsv('项目列表.csv', headers, rows)
+              const headers = ['项目名称', '企业名称', '总金额', '状态', '创建时间']
+              const rows = projects.map(p => [p.name, p.company_name, p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
+              exportCsv('项目填报.csv', headers, rows)
             }}
             className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition"
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text)' }}
@@ -184,7 +184,6 @@ export default function ProjectListPage() {
                 {[
                   { key: 'name', label: '项目名称' },
                   { key: 'company_name', label: '企业名称' },
-                  { key: 'company_contact', label: '项目负责人' },
                   { key: 'total_amount', label: '总金额' },
                   { key: 'status', label: '当前状态' },
                   { key: 'created_at', label: '创建时间' },
@@ -215,11 +214,8 @@ export default function ProjectListPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>
                     {project.company_name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>
-                    {project.company_contact || '未指定'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>
-                    ¥{project.total_amount?.toLocaleString() || '0'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--accent2)' }}>
+                    ¥{(project.total_amount || 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2.5 py-1 text-xs font-medium rounded-full" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>

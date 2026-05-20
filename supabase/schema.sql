@@ -10,9 +10,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Phase 1.2 用户信息表
 -- ========================================
 CREATE TABLE public.profiles (
-  id   UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+  id    UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name  TEXT NOT NULL,
+  email TEXT,
+  role  TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -20,8 +21,8 @@ CREATE TABLE public.profiles (
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', NEW.email));
+  INSERT INTO public.profiles (id, name, email)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', NEW.email), NEW.email);
   RETURN NEW;
 END;
 $$;

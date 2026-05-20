@@ -40,10 +40,11 @@ export function useLockContractSection(projectId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ contractId, section }) => {
-      // section: 'audit_sign' | 'stamp_upload' | 'send_out'
+      // section: 'audit_sign' | 'sign_confirm' | 'stamp_upload' | 'send_out'
+      const lockColumn = section === 'sign_confirm' ? 'sign_locked' : `${section}_locked`
       const { error } = await supabase
         .from('contracts')
-        .update({ [`${section}_locked`]: true })
+        .update({ [lockColumn]: true })
         .eq('id', contractId)
       if (error) throw error
     },
@@ -57,9 +58,10 @@ export function useUnlockContractSection(projectId) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ contractId, section }) => {
+      const lockColumn = section === 'sign_confirm' ? 'sign_locked' : `${section}_locked`
       const { error } = await supabase
         .from('contracts')
-        .update({ [`${section}_locked`]: false })
+        .update({ [lockColumn]: false })
         .eq('id', contractId)
       if (error) throw error
     },
