@@ -179,7 +179,7 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
 
         <div className="mt-4 flex justify-end">
           {isPaymentLocked ? (
-            isAdmin && (
+            isAdmin ? (
               <button
                 onClick={() => setUnlockConfirm({ open: true, section: 'payment' })}
                 className="px-4 py-2 text-sm rounded-xl btn-transition"
@@ -187,6 +187,8 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
               >
                 解锁
               </button>
+            ) : (
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>如需解锁请联系管理员</span>
             )
           ) : (
             <button
@@ -249,7 +251,7 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
 
         <div className="mt-4 flex justify-end">
           {isClaimLocked ? (
-            isAdmin && (
+            isAdmin ? (
               <button
                 onClick={() => setUnlockConfirm({ open: true, section: 'claim' })}
                 className="px-4 py-2 text-sm rounded-xl btn-transition"
@@ -257,6 +259,8 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
               >
                 解锁
               </button>
+            ) : (
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>如需解锁请联系管理员</span>
             )
           ) : (
             <button

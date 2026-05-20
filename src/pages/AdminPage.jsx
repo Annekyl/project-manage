@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [detailData, setDetailData] = useState(null)
   const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: '', userName: '', newRole: '' })
   const [editingName, setEditingName] = useState({ userId: '', name: '' })
+  const [resetConfirm, setResetConfirm] = useState({ open: false, userId: '', userName: '' })
 
   // Users query
   const { data: userData, isLoading: usersLoading } = useQuery({
@@ -94,6 +95,21 @@ export default function AdminPage() {
       qc.invalidateQueries({ queryKey: ['admin-users'] })
     },
     onError: (error) => toast.error('更新失败: ' + error.message)
+  })
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId }) => {
+      const { error } = await supabase.rpc('admin_reset_password', {
+        target_user_id: userId,
+        new_password: 'user123'
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      setResetConfirm({ open: false, userId: '', userName: '' })
+      toast.success('密码已重置为 user123')
+    },
+    onError: (error) => toast.error('重置失败: ' + error.message)
   })
 
   const createUserMutation = useMutation({
@@ -222,7 +238,15 @@ export default function AdminPage() {
                         </select>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>{format(new Date(user.created_at), 'yyyy-MM-dd HH:mm')}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>-</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button
+                          onClick={() => setResetConfirm({ open: true, userId: user.id, userName: user.name })}
+                          className="transition-colors"
+                          style={{ color: 'var(--warning)' }}
+                        >
+                          重置密码
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -306,6 +330,14 @@ export default function AdminPage() {
         message={`确定将用户「${roleConfirm.userName}」的角色修改为${roleConfirm.newRole === 'admin' ? '管理员' : '成员'}？`}
         onConfirm={confirmRoleChange}
         onCancel={() => setRoleConfirm({ open: false, userId: '', userName: '', newRole: '' })}
+      />
+
+      <ConfirmModal
+        open={resetConfirm.open}
+        title="确认重置密码"
+        message={`确定要重置用户「${resetConfirm.userName}」的密码？重置后密码为：user123`}
+        onConfirm={() => resetPasswordMutation.mutate({ userId: resetConfirm.userId })}
+        onCancel={() => setResetConfirm({ open: false, userId: '', userName: '' })}
       />
 
       {/* 数据详情弹窗 */}

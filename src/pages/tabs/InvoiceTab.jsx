@@ -203,7 +203,7 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
 
       <div className="mt-6 flex justify-end">
         {isLocked ? (
-          isAdmin && (
+          isAdmin ? (
             <button
               onClick={() => setUnlockConfirm(true)}
               className="px-4 py-2 text-sm rounded-xl btn-transition"
@@ -211,6 +211,8 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
             >
               解锁
             </button>
+          ) : (
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>如需解锁请联系管理员</span>
           )
         ) : (
           <button

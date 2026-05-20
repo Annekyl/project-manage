@@ -50,7 +50,24 @@ export default function App() {
         </Suspense>
         </ErrorBoundary>
       </HashRouter>
-      <Toaster position="top-right" />
+      <Toaster
+  position="top-center"
+  toastOptions={{
+    duration: 3000,
+    style: {
+      fontSize: '15px',
+      padding: '14px 24px',
+      borderRadius: '12px',
+      boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+    },
+    success: {
+      iconTheme: { primary: '#22c55e', secondary: '#fff' },
+    },
+    error: {
+      iconTheme: { primary: '#ef4444', secondary: '#fff' },
+    },
+  }}
+/>
       </ThemeProvider>
     </QueryClientProvider>
   )

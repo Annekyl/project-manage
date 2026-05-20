@@ -140,10 +140,12 @@ export default function ContractTab({ project, section, isAdmin, currentUserId }
           </div>
           <div className="mt-4 flex justify-end">
             {isAuditLocked ? (
-              isAdmin && (
+              isAdmin ? (
                 <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'audit_sign' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
                   解锁
                 </button>
+              ) : (
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>如需解锁请联系管理员</span>
               )
             ) : (
               <button onClick={() => setConfirmModal({ open: true, mode: 'lock', target: 'audit_sign' })} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
@@ -177,10 +179,12 @@ export default function ContractTab({ project, section, isAdmin, currentUserId }
           </div>
           <div className="mt-4 flex justify-end">
             {isSignLocked ? (
-              isAdmin && (
+              isAdmin ? (
                 <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'sign_confirm' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
                   解锁
                 </button>
+              ) : (
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>如需解锁请联系管理员</span>
               )
             ) : (
               <button onClick={() => setConfirmModal({ open: true, mode: 'lock', target: 'sign_confirm' })} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
@@ -235,10 +239,12 @@ export default function ContractTab({ project, section, isAdmin, currentUserId }
           </div>
           <div className="mt-4 flex justify-end">
             {isLocked ? (
-              isAdmin && (
+              isAdmin ? (
                 <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'stamp_upload' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
                   解锁
                 </button>
+              ) : (
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>如需解锁请联系管理员</span>
               )
             ) : (
               <button onClick={() => handleLock('stamp_upload', stampData, 'send_out')} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
@@ -285,10 +291,12 @@ export default function ContractTab({ project, section, isAdmin, currentUserId }
           </div>
           <div className="mt-4 flex justify-end">
             {isLocked ? (
-              isAdmin && (
+              isAdmin ? (
                 <button onClick={() => setConfirmModal({ open: true, mode: 'unlock', target: 'send_out' })} className="px-4 py-2 text-sm rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>
                   解锁
                 </button>
+              ) : (
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>如需解锁请联系管理员</span>
               )
             ) : (
               <button onClick={() => handleLock('send_out', sendData, 'payment_invoice')} className="px-4 py-2 text-sm text-white rounded-xl btn-transition" style={{ background: 'var(--gradient-primary)' }}>
