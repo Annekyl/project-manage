@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { User, Shield, Loader2 } from 'lucide-react'
 
 export default function SettingsPage() {
-  const { user, profile, refreshProfile } = useAuth()
+  const { user, profile, refreshProfile, isAdmin } = useAuth()
 
   const [name, setName] = useState('')
   const [savingName, setSavingName] = useState(false)
@@ -81,7 +81,8 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>姓名</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={!isAdmin} className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed" style={isAdmin ? inputStyle : disabledInputStyle} />
+            {!isAdmin && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>姓名由管理员设置</p>}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>角色</label>

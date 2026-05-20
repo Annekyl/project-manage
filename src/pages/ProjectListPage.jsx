@@ -132,16 +132,14 @@ export default function ProjectListPage() {
             <Download className="w-4 h-4 mr-1" />
             导出
           </button>
-          {isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center px-4 py-2.5 text-white rounded-xl shadow-md btn-transition"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              新建项目
-            </button>
-          )}
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center px-4 py-2.5 text-white rounded-xl shadow-md btn-transition"
+            style={{ background: 'var(--gradient-primary)' }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            新建项目
+          </button>
         </div>
       </div>
 
