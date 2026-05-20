@@ -152,7 +152,7 @@ export default function ProjectListPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索项目名称或企业名称..."
+            placeholder="搜索项目名称、企业名称或项目编号..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl shadow-sm transition-all"
             style={inputStyle}
           />
