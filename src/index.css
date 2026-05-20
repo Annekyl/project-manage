@@ -114,6 +114,10 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
+button, a, select, [role="tab"], [role="button"] {
+  cursor: pointer;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
@@ -149,13 +153,115 @@ h1, h2, h3, h4, h5, h6 {
   animation: slideUp 0.25s ease-out;
 }
 
-/* ===== 按钮过渡 ===== */
+/* ===== 按钮交互 ===== */
 .btn-transition {
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.btn-transition:active {
+/* 渐变按钮（主要操作）hover 提亮，active 压暗 */
+button[style*="gradient-primary"]:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 20px rgba(46, 125, 111, 0.25);
+  transform: translateY(-1px);
+}
+
+button[style*="gradient-primary"]:active {
+  filter: brightness(0.92);
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 2px 8px rgba(46, 125, 111, 0.15);
+}
+
+/* 渐变成功按钮 */
+button[style*="gradient-success"]:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 20px rgba(67, 160, 71, 0.25);
+  transform: translateY(-1px);
+}
+
+button[style*="gradient-success"]:active {
+  filter: brightness(0.92);
+  transform: translateY(0) scale(0.97);
+}
+
+/* 次要按钮 hover 背景变深、文字变强调色 */
+button[style*="bg-table-head"]:hover {
+  background: var(--bg-card-hover) !important;
+  color: var(--accent) !important;
+}
+
+button[style*="bg-table-head"]:active {
   transform: scale(0.97);
+  filter: brightness(0.95);
+}
+
+/* 表格行悬停高亮 */
+tr[data-row]:hover,
+tbody tr:hover {
+  background: var(--bg-card-hover) !important;
+}
+
+/* 输入框 / 选择框悬停和聚焦 */
+input:not([disabled]):hover,
+textarea:not([disabled]):hover {
+  border-color: var(--accent) !important;
+}
+
+input:not([disabled]):focus,
+textarea:not([disabled]):focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-light);
+  outline: none;
+}
+
+select:not([disabled]):hover {
+  border-color: var(--accent) !important;
+}
+
+/* 侧栏导航链接悬停 */
+nav a:not(.active):hover {
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+  opacity: 1 !important;
+}
+
+/* 卡片悬停 */
+.card-hover:hover {
+  box-shadow: var(--shadow-lg) !important;
+  border-color: var(--accent-light) !important;
+  transform: translateY(-2px);
+}
+
+/* 文字按钮（如"编辑"、"重置密码"、"查看数据"） */
+button:not([style]):hover,
+a[role="link"]:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+/* 小文字按钮悬停（带 color 但无 background 的按钮） */
+button[style*="accent"]:not([style*="background"]):hover,
+button[style*="warning"]:not([style*="background"]):hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+/* 文件上传区域悬停 */
+[class*="border-dashed"]:not([style*="not-allowed"]):hover {
+  border-color: var(--accent) !important;
+  background: var(--accent-light) !important;
+}
+
+/* Tab 切换按钮悬停 */
+button[role="tab"]:not([aria-selected="true"]):hover {
+  color: var(--accent) !important;
+  border-color: var(--accent-light) !important;
+}
+
+/* Pagination 按钮悬停 */
+nav button:not(:disabled):hover {
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
 }
 
 /* ===== 自定义滚动条 ===== */

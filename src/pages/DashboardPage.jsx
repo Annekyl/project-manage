@@ -160,7 +160,7 @@ export default function DashboardPage() {
                 <div
                   key={project.id}
                   onClick={() => navigate(`/projects/${project.id}`)}
-                  className="rounded-xl shadow cursor-pointer p-5 transition-all hover:shadow-lg"
+                  className="rounded-xl shadow cursor-pointer p-5 transition-all card-hover"
                   style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}
                 >
                   <div className="flex justify-between items-start mb-3">

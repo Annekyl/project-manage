@@ -48,7 +48,7 @@ export default function Sidebar({ onClose }) {
               `flex items-center px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? 'shadow-sm'
-                  : 'hover:opacity-80'
+                  : ''
               }`
             }
             style={({ isActive }) => ({

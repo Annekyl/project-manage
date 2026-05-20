@@ -28,16 +28,16 @@ export default function Header({ onMenuToggle }) {
         <div className="w-px h-5 hidden md:block" style={{ background: 'var(--border)' }} />
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-lg transition-colors"
-          style={{ color: 'var(--text-dim)' }}
+          className="p-2 rounded-lg transition-colors hover:scale-105 active:scale-95"
+          style={{ color: 'var(--text-dim)', background: 'var(--bg-table-head)' }}
           title={dark ? '切换到亮色模式' : '切换到暗色模式'}
         >
           {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
         <button
           onClick={signOut}
-          className="flex items-center text-sm transition-colors btn-transition"
-          style={{ color: 'var(--text-dim)' }}
+          className="flex items-center text-sm px-3 py-1.5 rounded-lg transition-colors hover:scale-105 active:scale-95"
+          style={{ color: 'var(--text-dim)', background: 'var(--bg-table-head)' }}
         >
           <LogOut className="w-4 h-4 md:mr-1" />
           <span className="hidden md:inline">退出</span>
