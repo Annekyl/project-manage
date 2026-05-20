@@ -120,7 +120,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
         <div className="w-full rounded-full h-2.5" style={{ background: 'var(--bg-table-head)' }}>
           <div
             className="h-2.5 rounded-full transition-all"
-            style={{ width: `${Math.min(progress, 100)}%`, background: 'var(--gradient-primary)' }}
+            style={{ width: `${Math.min(progress, 100)}%`, background: isFullyReimbursed ? 'var(--gradient-success)' : 'var(--gradient-primary)' }}
           />
         </div>
         <p className="text-sm mt-2" style={{ color: 'var(--text-dim)' }}>报销进度: {progress.toFixed(1)}%</p>
