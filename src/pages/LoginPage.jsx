@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
+import { translateError } from '../utils/errors'
 import toast from 'react-hot-toast'
 import { Mail, Lock, Loader2, Sun, Moon } from 'lucide-react'
 import appIcon from '/icon.svg'
@@ -21,7 +22,7 @@ export default function LoginPage() {
     const { error } = await signIn(email, password)
 
     if (error) {
-      toast.error(error.message)
+      toast.error(translateError(error.message))
     } else {
       toast.success('登录成功')
       navigate('/')

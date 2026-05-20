@@ -5,6 +5,7 @@ import UserSelect from '../../components/common/UserSelect'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import toast from 'react-hot-toast'
+import { translateError } from '../../utils/errors'
 
 const INVOICE_TYPES = ['普通发票', '专用发票', '增值税发票']
 
@@ -81,7 +82,7 @@ export default function InvoiceTab({ project, isAdmin, currentUserId }) {
       }
       setConfirmModal(false)
     } catch (error) {
-      toast.error('操作失败: ' + error.message)
+      toast.error('操作失败: ' + translateError(error.message))
     }
   }
 

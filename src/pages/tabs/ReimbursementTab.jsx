@@ -7,6 +7,7 @@ import ConfirmModal from '../../components/common/ConfirmModal'
 import { format } from 'date-fns'
 import { Plus, Check, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { translateError } from '../../utils/errors'
 
 export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
   const reimbursements = project.reimbursements || []
@@ -60,7 +61,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
         submitted_at: ''
       })
     } catch (error) {
-      toast.error('添加失败: ' + error.message)
+      toast.error('添加失败: ' + translateError(error.message))
     }
   }
 
@@ -90,7 +91,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
       await updateStatus.mutateAsync('closure')
       toast.success('已进入结题阶段')
     } catch (error) {
-      toast.error('操作失败: ' + error.message)
+      toast.error('操作失败: ' + translateError(error.message))
     }
   }
 
@@ -147,7 +148,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
                 await updateStatus.mutateAsync('closure')
                 toast.success('已进入结题阶段')
               } catch (error) {
-                toast.error('操作失败: ' + error.message)
+                toast.error('操作失败: ' + translateError(error.message))
               }
             }}
             onCancel={() => setClosureConfirm(false)}

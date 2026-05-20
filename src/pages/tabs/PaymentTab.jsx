@@ -6,6 +6,7 @@ import FileUpload from '../../components/common/FileUpload'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import toast from 'react-hot-toast'
+import { translateError } from '../../utils/errors'
 
 export default function PaymentTab({ project, isAdmin, currentUserId }) {
   const payment = project.payments?.[0]
@@ -93,7 +94,7 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
 
       setConfirmModal({ open: false, section: null })
     } catch (error) {
-      toast.error('操作失败: ' + error.message)
+      toast.error('操作失败: ' + translateError(error.message))
     }
   }
 

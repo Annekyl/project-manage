@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../utils/supabase'
+import { translateError } from '../utils/errors'
 import toast from 'react-hot-toast'
 import { User, Shield, Loader2 } from 'lucide-react'
 
@@ -26,7 +27,7 @@ export default function SettingsPage() {
       if (error) throw error
       await refreshProfile()
       toast.success('姓名已更新')
-    } catch (error) { toast.error('更新失败: ' + error.message) }
+    } catch (error) { toast.error('更新失败: ' + translateError(error.message)) }
     finally { setSavingName(false) }
   }
 
@@ -48,7 +49,7 @@ export default function SettingsPage() {
       if (error) throw error
       setPasswords({ current: '', newPassword: '', confirm: '' })
       toast.success('密码已更新')
-    } catch (error) { toast.error('更新失败: ' + error.message) }
+    } catch (error) { toast.error('更新失败: ' + translateError(error.message)) }
     finally { setSavingPassword(false) }
   }
 

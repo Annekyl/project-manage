@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Upload, File, ExternalLink } from 'lucide-react'
 import { uploadFile, getFileUrl } from '../../utils/storage'
+import { translateError } from '../../utils/errors'
 import toast from 'react-hot-toast'
 
 export default function FileUpload({ value, onChange, folder, disabled = false }) {
@@ -32,7 +33,7 @@ export default function FileUpload({ value, onChange, folder, disabled = false }
       onChange(path)
       toast.success('文件上传成功')
     } catch (error) {
-      toast.error('上传失败: ' + error.message)
+      toast.error('上传失败: ' + translateError(error.message))
     } finally {
       setUploading(false)
     }

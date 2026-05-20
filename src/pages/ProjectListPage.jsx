@@ -10,6 +10,7 @@ import Pagination from '../components/common/Pagination'
 import Modal from '../components/common/Modal'
 import { exportCsv } from '../utils/exportCsv'
 import { statusLabels } from '../utils/constants'
+import { translateError } from '../utils/errors'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -62,7 +63,7 @@ export default function ProjectListPage() {
       setFormData({ name: '', company_name: '', total_amount: '' })
       navigate(`/projects/${project.id}`)
     } catch (error) {
-      toast.error('创建失败: ' + error.message)
+      toast.error('创建失败: ' + translateError(error.message))
     }
   }
 
@@ -72,7 +73,7 @@ export default function ProjectListPage() {
       toast.success('项目已删除')
       setDeleteConfirm({ open: false, projectId: null, projectName: '' })
     } catch (error) {
-      toast.error('删除失败: ' + error.message)
+      toast.error('删除失败: ' + translateError(error.message))
     }
   }
 
@@ -90,7 +91,7 @@ export default function ProjectListPage() {
       toast.success('项目已更新')
       setEditProject(null)
     } catch (error) {
-      toast.error('更新失败: ' + error.message)
+      toast.error('更新失败: ' + translateError(error.message))
     }
   }
 

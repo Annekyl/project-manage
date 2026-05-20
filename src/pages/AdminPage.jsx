@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../utils/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { translateError } from '../utils/errors'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { UserPlus, X, Loader2, Download, Trash2 } from 'lucide-react'
@@ -84,7 +85,7 @@ export default function AdminPage() {
       toast.success('角色已更新')
       qc.invalidateQueries({ queryKey: ['admin-users'] })
     },
-    onError: (error) => toast.error('更新失败: ' + error.message)
+    onError: (error) => toast.error('更新失败: ' + translateError(error.message))
   })
 
   const nameMutation = useMutation({
@@ -97,7 +98,7 @@ export default function AdminPage() {
       setEditingName({ userId: '', name: '' })
       qc.invalidateQueries({ queryKey: ['admin-users'] })
     },
-    onError: (error) => toast.error('更新失败: ' + error.message)
+    onError: (error) => toast.error('更新失败: ' + translateError(error.message))
   })
 
   const resetPasswordMutation = useMutation({
@@ -112,7 +113,7 @@ export default function AdminPage() {
       setResetConfirm({ open: false, userId: '', userName: '' })
       toast.success('密码已重置为 user123')
     },
-    onError: (error) => toast.error('重置失败: ' + error.message)
+    onError: (error) => toast.error('重置失败: ' + translateError(error.message))
   })
 
   const createUserMutation = useMutation({
@@ -128,7 +129,7 @@ export default function AdminPage() {
       setNewUser({ email: '', password: '', name: '' })
       qc.invalidateQueries({ queryKey: ['admin-users'] })
     },
-    onError: (error) => toast.error('创建失败: ' + error.message)
+    onError: (error) => toast.error('创建失败: ' + translateError(error.message))
   })
 
   const deleteUserMutation = useMutation({
@@ -141,7 +142,7 @@ export default function AdminPage() {
       setDeleteConfirm({ open: false, userId: '', userName: '' })
       qc.invalidateQueries({ queryKey: ['admin-users'] })
     },
-    onError: (error) => toast.error('删除失败: ' + error.message)
+    onError: (error) => toast.error('删除失败: ' + translateError(error.message))
   })
 
   function handleRoleChange(userId, userName, newRole) {

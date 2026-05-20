@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useInitContract, useUpdateContract, useLockContractSection, useUnlockContractSection } from '../../hooks/useContract'
 import { useUpdateProjectStatus } from '../../hooks/useProjectStatus'
+import { translateError } from '../../utils/errors'
 import UserSelect from '../../components/common/UserSelect'
 import FileUpload from '../../components/common/FileUpload'
 import StatusBadge from '../../components/common/StatusBadge'
@@ -92,7 +93,7 @@ export default function ContractTab({ project, section, isAdmin, currentUserId }
       }
       setConfirmModal({ open: false, mode: null, target: null })
     } catch (error) {
-      toast.error('操作失败: ' + error.message)
+      toast.error('操作失败: ' + translateError(error.message))
     }
   }
 
