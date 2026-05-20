@@ -118,13 +118,15 @@ export default function AdminPage() {
 
   const createUserMutation = useMutation({
     mutationFn: async ({ email, password, name }) => {
-      const { error } = await supabase.auth.signUp({
-        email, password, options: { data: { name } }
+      const { error } = await supabase.rpc('admin_create_user', {
+        user_email: email,
+        user_password: password,
+        user_name: name,
       })
       if (error) throw error
     },
     onSuccess: () => {
-      toast.success('用户创建成功，请用户查收确认邮件')
+      toast.success('用户创建成功')
       setShowCreateUser(false)
       setNewUser({ email: '', password: '', name: '' })
       qc.invalidateQueries({ queryKey: ['admin-users'] })
