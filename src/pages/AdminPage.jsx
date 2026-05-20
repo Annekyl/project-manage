@@ -24,6 +24,7 @@ export default function AdminPage() {
   const [logPage, setLogPage] = useState(1)
   const [detailData, setDetailData] = useState(null)
   const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: '', userName: '', newRole: '' })
+  const [editingName, setEditingName] = useState({ userId: '', name: '' })
 
   // Users query
   const { data: userData, isLoading: usersLoading } = useQuery({
@@ -77,6 +78,19 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       toast.success('角色已更新')
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+    onError: (error) => toast.error('更新失败: ' + error.message)
+  })
+
+  const nameMutation = useMutation({
+    mutationFn: async ({ userId, name }) => {
+      const { error } = await supabase.from('profiles').update({ name }).eq('id', userId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success('姓名已更新')
+      setEditingName({ userId: '', name: '' })
       qc.invalidateQueries({ queryKey: ['admin-users'] })
     },
     onError: (error) => toast.error('更新失败: ' + error.message)
@@ -170,10 +184,35 @@ export default function AdminPage() {
                   {users.map((user) => (
                     <tr key={user.id} className="transition-colors" style={{ background: 'var(--bg-table-row)' }}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3" style={{ background: 'var(--gradient-primary)' }}>{user.name?.[0] || '?'}</div>
-                          <span className="font-medium" style={{ color: 'var(--text-bright)' }}>{user.name}</span>
-                        </div>
+                        {editingName.userId === user.id ? (
+                          <form
+                            onSubmit={(e) => { e.preventDefault(); nameMutation.mutate({ userId: user.id, name: editingName.name }) }}
+                            className="flex items-center space-x-2"
+                          >
+                            <input
+                              type="text"
+                              value={editingName.name}
+                              onChange={(e) => setEditingName({ ...editingName, name: e.target.value })}
+                              className="rounded-lg shadow-sm text-sm transition-all w-32"
+                              style={inputStyle}
+                              autoFocus
+                            />
+                            <button type="submit" className="text-xs font-medium transition-colors" style={{ color: 'var(--success)' }}>保存</button>
+                            <button type="button" onClick={() => setEditingName({ userId: '', name: '' })} className="text-xs transition-colors" style={{ color: 'var(--text-muted)' }}>取消</button>
+                          </form>
+                        ) : (
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3" style={{ background: 'var(--gradient-primary)' }}>{user.name?.[0] || '?'}</div>
+                            <span className="font-medium mr-2" style={{ color: 'var(--text-bright)' }}>{user.name}</span>
+                            <button
+                              onClick={() => setEditingName({ userId: user.id, name: user.name || '' })}
+                              className="text-xs transition-colors"
+                              style={{ color: 'var(--accent)' }}
+                            >
+                              编辑
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>{user.id.slice(0, 8)}...</td>
                       <td className="px-6 py-4 whitespace-nowrap">

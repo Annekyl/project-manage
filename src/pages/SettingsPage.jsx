@@ -89,11 +89,13 @@ export default function SettingsPage() {
             <input type="text" value={profile?.role === 'admin' ? '管理员' : '成员'} disabled className="w-full rounded-xl shadow-sm cursor-not-allowed" style={disabledInputStyle} />
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>角色由管理员设置</p>
           </div>
-          <div className="flex justify-end pt-2">
-            <button type="submit" disabled={savingName} className="px-5 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 shadow-md btn-transition flex items-center" style={{ background: 'var(--gradient-primary)' }}>
-              {savingName ? <><Loader2 className="w-4 h-4 mr-2 spinner" />保存中...</> : '保存修改'}
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex justify-end pt-2">
+              <button type="submit" disabled={savingName} className="px-5 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 shadow-md btn-transition flex items-center" style={{ background: 'var(--gradient-primary)' }}>
+                {savingName ? <><Loader2 className="w-4 h-4 mr-2 spinner" />保存中...</> : '保存修改'}
+              </button>
+            </div>
+          )}
         </form>
       </div>
 
