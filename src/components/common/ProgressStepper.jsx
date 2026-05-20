@@ -7,17 +7,17 @@ const STEPS = [
   { key: 'payment_invoice', label: '打款开票' },
   { key: 'reimbursement', label: '报销' },
   { key: 'closure', label: '结题' },
-  { key: 'completed', label: '完成' },
 ]
 
 export default function ProgressStepper({ currentStatus }) {
+  const isAllDone = currentStatus === 'completed'
   const currentIndex = STEPS.findIndex((s) => s.key === currentStatus)
 
   return (
     <div className="flex items-center justify-between w-full">
       {STEPS.map((step, index) => {
-        const isCompleted = index < currentIndex
-        const isCurrent = index === currentIndex
+        const isCompleted = isAllDone || index < currentIndex
+        const isCurrent = !isAllDone && index === currentIndex
 
         return (
           <div key={step.key} className="flex items-center flex-1">
