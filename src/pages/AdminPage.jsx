@@ -199,7 +199,7 @@ export default function AdminPage() {
               <UserPlus className="w-4 h-4 mr-2" /> 创建用户
             </button>
           </div>
-          <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
+          <div className="rounded-xl shadow-sm overflow-x-auto" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
             {usersLoading ? (
               <div className="p-4"><SkeletonTable rows={5} cols={5} /></div>
             ) : users.length === 0 ? (
@@ -353,7 +353,7 @@ export default function AdminPage() {
               <Download className="w-4 h-4 mr-1" /> 导出
             </button>
           </div>
-          <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
+          <div className="rounded-xl shadow-sm overflow-x-auto" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
             <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-light)' }}>
               <thead style={{ background: 'var(--bg-table-head)' }}>
                 <tr>

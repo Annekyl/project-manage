@@ -24,7 +24,7 @@ export default function ProgressStepper({ currentStatus, responsibles }) {
           <div key={step.key} className="flex items-start flex-1">
             <div className="flex flex-col items-center">
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white"
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium text-white"
                 style={{
                   background: isCompleted
                     ? 'var(--success)'
@@ -34,10 +34,10 @@ export default function ProgressStepper({ currentStatus, responsibles }) {
                   color: isCompleted || isCurrent ? '#fff' : 'var(--text-dim)',
                 }}
               >
-                {isCompleted ? <Check className="w-4 h-4" /> : index + 1}
+                {isCompleted ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : index + 1}
               </div>
               <span
-                className="text-xs mt-1"
+                className="text-[10px] sm:text-xs mt-1 text-center leading-tight"
                 style={{
                   color: isCurrent ? 'var(--warning)' : 'var(--text-dim)',
                   fontWeight: isCurrent ? 600 : 400,
@@ -46,14 +46,14 @@ export default function ProgressStepper({ currentStatus, responsibles }) {
                 {step.label}
               </span>
               {responsible && (
-                <span className="text-xs mt-0.5 truncate max-w-16" style={{ color: 'var(--text-muted)' }}>
+                <span className="hidden sm:block text-xs mt-0.5 truncate max-w-16" style={{ color: 'var(--text-muted)' }}>
                   {responsible}
                 </span>
               )}
             </div>
             {index < STEPS.length - 1 && (
               <div
-                className="flex-1 h-0.5 mx-2 mt-4"
+                className="flex-1 h-0.5 mx-1 sm:mx-2 mt-3 sm:mt-4"
                 style={{ background: isCompleted ? 'var(--success)' : isCurrent ? 'var(--warning)' : 'var(--border)' }}
               />
             )}

@@ -101,8 +101,8 @@ export default function DashboardPage() {
       </div>
 
       {/* 标签栏 */}
-      <div className="border-b mb-5" style={{ borderColor: 'var(--border)' }}>
-        <nav className="flex space-x-6" role="tablist">
+      <div className="border-b mb-5 overflow-x-auto" style={{ borderColor: 'var(--border)' }}>
+        <nav className="flex space-x-6 min-w-max" role="tablist">
           {[
             { key: '', label: '全部项目', count: statsLoading ? null : statTotal },
             { key: 'in_progress', label: '进行中', count: statsLoading ? null : statInProgress },
@@ -177,9 +177,9 @@ export default function DashboardPage() {
                     <ProgressStepper currentStatus={project.status} responsibles={stageResponsibles} />
                   </div>
 
-                  <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <div className="flex flex-wrap justify-between text-xs gap-1" style={{ color: 'var(--text-muted)' }}>
                     <span>已报销: ¥{totalReimbursed.toLocaleString()}</span>
-                    <span>¥{project.total_amount?.toLocaleString() || '0'}</span>
+                    <span>总额: ¥{project.total_amount?.toLocaleString() || '0'}</span>
                     <span>{format(new Date(project.created_at), 'yyyy-MM-dd')}</span>
                   </div>
                 </div>

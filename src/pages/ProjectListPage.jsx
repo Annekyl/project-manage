@@ -169,7 +169,7 @@ export default function ProjectListPage() {
       </div>
 
       {/* 项目表格 */}
-      <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
+      <div className="rounded-xl shadow-sm overflow-x-auto" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
         {isLoading ? (
           <div className="p-4"><SkeletonTable rows={5} cols={5} /></div>
         ) : projects.length === 0 ? (
