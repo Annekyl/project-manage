@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { translateError } from '../utils/errors'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
-import { UserPlus, X, Loader2, Download, Trash2 } from 'lucide-react'
+import { UserPlus, X, Loader2, Download, Trash2, Copy } from 'lucide-react'
 import ConfirmModal from '../components/common/ConfirmModal'
 import Pagination from '../components/common/Pagination'
 import Modal from '../components/common/Modal'
@@ -238,8 +238,16 @@ export default function AdminPage() {
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3" style={{ background: 'var(--gradient-primary)' }}>{user.name?.[0] || '?'}</div>
                             <span className="font-medium mr-2" style={{ color: 'var(--text-bright)' }}>{user.name}</span>
                             <button
+                              onClick={() => { navigator.clipboard.writeText(user.name); toast.success('已复制姓名') }}
+                              className="transition-colors"
+                              style={{ color: 'var(--text-muted)' }}
+                              title="复制姓名"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
                               onClick={() => setEditingName({ userId: user.id, name: user.name || '' })}
-                              className="text-xs transition-colors"
+                              className="text-xs ml-2 transition-colors"
                               style={{ color: 'var(--accent)' }}
                             >
                               编辑
@@ -247,8 +255,34 @@ export default function AdminPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>{user.email || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>{user.id.slice(0, 8)}...</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>
+                        <span className="inline-flex items-center">
+                          {user.email || '-'}
+                          {user.email && (
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(user.email); toast.success('已复制邮箱') }}
+                              className="ml-1.5 inline-flex items-center transition-colors"
+                              style={{ color: 'var(--text-muted)' }}
+                              title="复制邮箱"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>
+                        <span className="inline-flex items-center">
+                          {user.id.slice(0, 8)}...
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(user.id); toast.success('已复制用户ID') }}
+                            className="ml-1 inline-flex items-center transition-colors"
+                            style={{ color: 'var(--text-muted)' }}
+                            title="复制完整ID"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select value={user.role} onChange={(e) => handleRoleChange(user.id, user.name, e.target.value)} className="rounded-lg shadow-sm text-sm transition-all" style={inputStyle}>
                           <option value="member">成员</option>

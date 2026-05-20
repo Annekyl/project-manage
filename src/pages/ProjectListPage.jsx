@@ -4,7 +4,7 @@ import { useProjects, useCreateProject, useUpdateProject } from '../hooks/usePro
 import { useAuth } from '../hooks/useAuth'
 import { useInitContract } from '../hooks/useContract'
 import { useDeleteProject } from '../hooks/useDeleteProject'
-import { Plus, Search, Trash2, Pencil, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, Download, ArrowUpDown, ArrowUp, ArrowDown, Copy } from 'lucide-react'
 import { SkeletonTable } from '../components/common/Skeleton'
 import Pagination from '../components/common/Pagination'
 import Modal from '../components/common/Modal'
@@ -121,8 +121,8 @@ export default function ProjectListPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
-              const headers = ['项目名称', '企业名称', '总金额', '状态', '创建时间']
-              const rows = projects.map(p => [p.name, p.company_name, p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
+              const headers = ['项目名称', '项目ID', '企业名称', '总金额', '状态', '创建时间']
+              const rows = projects.map(p => [p.name, p.id, p.company_name, p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
               exportCsv('项目填报.csv', headers, rows)
             }}
             className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition"
@@ -182,6 +182,7 @@ export default function ProjectListPage() {
               <tr>
                 {[
                   { key: 'name', label: '项目名称' },
+                  { key: 'id', label: '项目ID' },
                   { key: 'company_name', label: '企业名称' },
                   { key: 'total_amount', label: '总金额' },
                   { key: 'status', label: '当前状态' },
@@ -208,10 +209,43 @@ export default function ProjectListPage() {
                   style={{ background: 'var(--bg-table-row)' }}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium" style={{ color: 'var(--text-bright)' }}>{project.name}</div>
+                    <div className="font-medium inline-flex items-center" style={{ color: 'var(--text-bright)' }}>
+                      {project.name}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(project.name); toast.success('已复制项目名称') }}
+                        className="ml-1.5 inline-flex items-center transition-colors"
+                        style={{ color: 'var(--text-muted)' }}
+                        title="复制项目名称"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: 'var(--text-dim)' }}>
+                    <span className="inline-flex items-center">
+                      {project.id.slice(0, 8)}...
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(project.id); toast.success('已复制项目ID') }}
+                        className="ml-1 inline-flex items-center transition-colors"
+                        style={{ color: 'var(--text-muted)' }}
+                        title="复制完整ID"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>
-                    {project.company_name}
+                    <span className="inline-flex items-center">
+                      {project.company_name}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(project.company_name); toast.success('已复制企业名称') }}
+                        className="ml-1.5 inline-flex items-center transition-colors"
+                        style={{ color: 'var(--text-muted)' }}
+                        title="复制企业名称"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--accent2)' }}>
                     ¥{(project.total_amount || 0).toLocaleString()}
