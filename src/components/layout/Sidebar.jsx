@@ -23,8 +23,8 @@ export default function Sidebar({ onClose }) {
       <div className="px-5 py-6" style={{ background: 'var(--gradient-primary)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <img src={appIcon} alt="图标" className="w-7 h-7" />
+            <div className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden" style={{ border: '2px solid rgba(255,255,255,0.3)' }}>
+              <img src={appIcon} alt="图标" className="w-full h-full" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white leading-tight">项目管理系统</h1>

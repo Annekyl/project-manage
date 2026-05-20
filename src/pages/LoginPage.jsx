@@ -49,8 +49,8 @@ export default function LoginPage() {
       <div className="relative backdrop-blur-xl p-8 rounded-2xl shadow-xl w-full max-w-md border card-animate" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow-lg)' }}>
         {/* Logo 区域 */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-2xl mx-auto mb-4 shadow-lg flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
-            <img src={appIcon} alt="图标" className="w-14 h-14" />
+          <div className="w-24 h-24 rounded-full mx-auto mb-4 shadow-lg flex items-center justify-center overflow-hidden" style={{ background: 'var(--gradient-primary)', border: '3px solid var(--accent)' }}>
+            <img src={appIcon} alt="图标" className="w-full h-full" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-bright)' }}>产学研项目管理系统</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-dim)' }}>登录以管理你的项目</p>
