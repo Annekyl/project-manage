@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAddReimbursement, useConfirmReimbursement, useLockReimbursement } from '../../hooks/useReimbursements'
 import { useUpdateProjectStatus } from '../../hooks/useProjectStatus'
+import { useUsers } from '../../hooks/useUsers'
 import UserSelect from '../../components/common/UserSelect'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import { format } from 'date-fns'
@@ -9,6 +10,9 @@ import toast from 'react-hot-toast'
 
 export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
   const reimbursements = project.reimbursements || []
+  const { data: users = [] } = useUsers()
+  const userMap = {}
+  users.forEach(u => { userMap[u.id] = u.name })
   const addReimbursement = useAddReimbursement(project.id)
   const confirmReimbursement = useConfirmReimbursement(project.id)
   const lockReimbursement = useLockReimbursement(project.id)
@@ -195,7 +199,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm" style={{ color: 'var(--text-dim)' }}>
                   <div>
                     <span style={{ color: 'var(--text-muted)' }}>经办人: </span>
-                    {r.responsible_name || (r.responsible_id ? '已指定' : '未指定')}
+                    {userMap[r.responsible_id] || (r.responsible_id ? '已指定' : '未指定')}
                   </div>
                   <div>
                     <span style={{ color: 'var(--text-muted)' }}>提交时间: </span>
