@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import toast from 'react-hot-toast'
 import { Mail, Lock, Loader2, Sun, Moon } from 'lucide-react'
+import appIcon from '/icon.svg'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -47,10 +48,8 @@ export default function LoginPage() {
       <div className="relative backdrop-blur-xl p-8 rounded-2xl shadow-xl w-full max-w-md border card-animate" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow-lg)' }}>
         {/* Logo 区域 */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg" style={{ background: 'var(--gradient-primary)' }}>
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+          <div className="w-20 h-20 rounded-2xl mx-auto mb-4 shadow-lg flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
+            <img src={appIcon} alt="图标" className="w-14 h-14" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-bright)' }}>产学研项目管理系统</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-dim)' }}>登录以管理你的项目</p>

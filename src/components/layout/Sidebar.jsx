@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { LayoutDashboard, FolderOpen, Settings, UserCog, X } from 'lucide-react'
+import appIcon from '/icon.svg'
 
 export default function Sidebar({ onClose }) {
   const { isAdmin, profile } = useAuth()
@@ -23,7 +24,7 @@ export default function Sidebar({ onClose }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <FolderOpen className="w-5 h-5 text-white" />
+              <img src={appIcon} alt="图标" className="w-7 h-7" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white leading-tight">项目管理系统</h1>

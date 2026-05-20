@@ -174,24 +174,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="mb-3">
-                    <ProgressStepper currentStatus={project.status} />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs mb-3">
-                    {stageResponsibles.map((s) => {
-                      const STAGE_ORDER = ['audit_sign', 'stamp_upload', 'send_out', 'payment_invoice', 'reimbursement', 'closure']
-                      const currentIdx = STAGE_ORDER.indexOf(project.status)
-                      const stageIdx = STAGE_ORDER.indexOf(s.key)
-                      const isCurrent = s.key === project.status
-                      const isPast = stageIdx < currentIdx
-                      return (
-                        <div key={s.key} className="flex items-center truncate">
-                          <span style={{ color: isCurrent ? 'var(--accent)' : isPast ? 'var(--text-dim)' : 'var(--text-muted)' }}>
-                            {s.label}: {s.name || '未指定'}
-                          </span>
-                        </div>
-                      )
-                    })}
+                    <ProgressStepper currentStatus={project.status} responsibles={stageResponsibles} />
                   </div>
 
                   <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
