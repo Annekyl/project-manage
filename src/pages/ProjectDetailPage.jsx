@@ -8,7 +8,7 @@ import PaymentTab from './tabs/PaymentTab'
 import InvoiceTab from './tabs/InvoiceTab'
 import ReimbursementTab from './tabs/ReimbursementTab'
 import ClosureTab from './tabs/ClosureTab'
-import { ArrowLeft, Building2, User, DollarSign, Download } from 'lucide-react'
+import { ArrowLeft, Building2, User, Download } from 'lucide-react'
 import { statusLabels } from '../utils/constants'
 import { getFileUrl } from '../utils/storage'
 import JSZip from 'jszip'
@@ -192,7 +192,7 @@ export default function ProjectDetailPage() {
             <div className="flex items-center mt-2 space-x-4 text-sm" style={{ color: 'var(--text-dim)' }}>
               <span className="flex items-center"><Building2 className="w-4 h-4 mr-1" />{project.company_name}</span>
               {project.company_contact && <span className="flex items-center"><User className="w-4 h-4 mr-1" />负责人: {project.company_contact}</span>}
-              <span className="flex items-center"><DollarSign className="w-4 h-4 mr-1" />¥{project.total_amount?.toLocaleString() || '0'}</span>
+              <span className="flex items-center">¥{project.total_amount?.toLocaleString() || '0'}</span>
             </div>
           </div>
           <div className="flex items-center space-x-2 mt-2 lg:mt-0">
