@@ -32,7 +32,6 @@ export default function ProjectListPage() {
   const [formData, setFormData] = useState({
     name: '',
     company_name: '',
-    company_contact: '',
     total_amount: ''
   })
   const navigate = useNavigate()
@@ -60,7 +59,7 @@ export default function ProjectListPage() {
       await initContract.mutateAsync(project.id)
       toast.success('项目创建成功')
       setShowCreate(false)
-      setFormData({ name: '', company_name: '', company_contact: '', total_amount: '' })
+      setFormData({ name: '', company_name: '', total_amount: '' })
       navigate(`/projects/${project.id}`)
     } catch (error) {
       toast.error('创建失败: ' + error.message)
@@ -85,7 +84,6 @@ export default function ProjectListPage() {
         updates: {
           name: editProject.name,
           company_name: editProject.company_name,
-          company_contact: editProject.company_contact,
           total_amount: Math.max(0, parseFloat(editProject.total_amount) || 0)
         }
       })
@@ -197,7 +195,7 @@ export default function ProjectListPage() {
                     </span>
                   </th>
                 ))}
-                {isAdmin && <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>操作</th>}
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>操作</th>
               </tr>
             </thead>
             <tbody className="divide-y" style={{ borderColor: 'var(--border-light)' }}>
@@ -225,25 +223,24 @@ export default function ProjectListPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-muted)' }}>
                     {format(new Date(project.created_at), 'yyyy-MM-dd')}
                   </td>
-                  {isAdmin && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditProject({
-                            id: project.id,
-                            name: project.name,
-                            company_name: project.company_name,
-                            company_contact: project.company_contact || '',
-                            total_amount: project.total_amount?.toString() || ''
-                          })
-                        }}
-                        className="mr-3 transition-colors"
-                        style={{ color: 'var(--accent)' }}
-                        title="编辑项目"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditProject({
+                          id: project.id,
+                          name: project.name,
+                          company_name: project.company_name,
+                          total_amount: project.total_amount?.toString() || ''
+                        })
+                      }}
+                      className="mr-3 transition-colors"
+                      style={{ color: 'var(--accent)' }}
+                      title="编辑项目"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    {isAdmin && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -255,8 +252,8 @@ export default function ProjectListPage() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </td>
-                  )}
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -301,10 +298,6 @@ export default function ProjectListPage() {
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>企业名称 *</label>
             <input type="text" value={editProject?.company_name || ''} onChange={(e) => setEditProject({ ...editProject, company_name: e.target.value })} required className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目负责人</label>
-            <input type="text" value={editProject?.company_contact || ''} onChange={(e) => setEditProject({ ...editProject, company_contact: e.target.value })} placeholder="请输入负责人姓名" className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
