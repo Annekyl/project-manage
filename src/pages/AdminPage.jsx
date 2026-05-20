@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../utils/supabase'
+import { useAuth } from '../hooks/useAuth'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
-import { UserPlus, X, Loader2, Download } from 'lucide-react'
+import { UserPlus, X, Loader2, Download, Trash2 } from 'lucide-react'
 import ConfirmModal from '../components/common/ConfirmModal'
 import Pagination from '../components/common/Pagination'
 import Modal from '../components/common/Modal'
@@ -14,6 +15,7 @@ const PAGE_SIZE = 10
 
 export default function AdminPage() {
   const qc = useQueryClient()
+  const { user: currentUser } = useAuth()
   const [activeTab, setActiveTab] = useState('users')
   const [logFilter, setLogFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -26,6 +28,7 @@ export default function AdminPage() {
   const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: '', userName: '', newRole: '' })
   const [editingName, setEditingName] = useState({ userId: '', name: '' })
   const [resetConfirm, setResetConfirm] = useState({ open: false, userId: '', userName: '' })
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, userId: '', userName: '' })
 
   // Users query
   const { data: userData, isLoading: usersLoading } = useQuery({
@@ -126,6 +129,19 @@ export default function AdminPage() {
       qc.invalidateQueries({ queryKey: ['admin-users'] })
     },
     onError: (error) => toast.error('创建失败: ' + error.message)
+  })
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async ({ userId }) => {
+      const { error } = await supabase.rpc('admin_delete_user', { target_user_id: userId })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success('用户已删除')
+      setDeleteConfirm({ open: false, userId: '', userName: '' })
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+    onError: (error) => toast.error('删除失败: ' + error.message)
   })
 
   function handleRoleChange(userId, userName, newRole) {
@@ -239,7 +255,7 @@ export default function AdminPage() {
                         </select>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-dim)' }}>{format(new Date(user.created_at), 'yyyy-MM-dd HH:mm')}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                         <button
                           onClick={() => setResetConfirm({ open: true, userId: user.id, userName: user.name })}
                           className="transition-colors"
@@ -247,6 +263,15 @@ export default function AdminPage() {
                         >
                           重置密码
                         </button>
+                        {currentUser?.id !== user.id && (
+                          <button
+                            onClick={() => setDeleteConfirm({ open: true, userId: user.id, userName: user.name })}
+                            className="transition-colors inline-flex items-center"
+                            style={{ color: 'var(--danger)' }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-0.5" /> 删除
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -339,6 +364,14 @@ export default function AdminPage() {
         message={`确定要重置用户「${resetConfirm.userName}」的密码？重置后密码为：user123`}
         onConfirm={() => resetPasswordMutation.mutate({ userId: resetConfirm.userId })}
         onCancel={() => setResetConfirm({ open: false, userId: '', userName: '' })}
+      />
+
+      <ConfirmModal
+        open={deleteConfirm.open}
+        title="确认删除用户"
+        message={`确定要删除用户「${deleteConfirm.userName}」？此操作不可撤销，该用户的所有数据将被清除。`}
+        onConfirm={() => deleteUserMutation.mutate({ userId: deleteConfirm.userId })}
+        onCancel={() => setDeleteConfirm({ open: false, userId: '', userName: '' })}
       />
 
       {/* 数据详情弹窗 */}
