@@ -32,12 +32,14 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
   })
 
   const totalAmount = project.total_amount || 0
+  const receivedAmount = project.payments?.[0]?.received_amount || 0
+  const maxReimbursable = receivedAmount || totalAmount
   const totalReimbursed = reimbursements.reduce((sum, r) => sum + (r.amount || 0), 0)
   const totalConfirmed = reimbursements
     .filter((r) => r.received_confirmed)
     .reduce((sum, r) => sum + (r.amount || 0), 0)
-  const pendingAmount = totalAmount - totalReimbursed
-  const progress = totalAmount > 0 ? (totalReimbursed / totalAmount) * 100 : 0
+  const pendingAmount = maxReimbursable - totalReimbursed
+  const progress = maxReimbursable > 0 ? (totalReimbursed / maxReimbursable) * 100 : 0
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -80,7 +82,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
     })
   }
 
-  const isFullyReimbursed = totalReimbursed >= totalAmount
+  const isFullyReimbursed = totalReimbursed >= maxReimbursable
 
   async function handleMoveToClosure() {
     if (!isFullyReimbursed) {
@@ -102,8 +104,8 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
         <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-bright)' }}>报销汇总</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div>
-            <p className="text-sm" style={{ color: 'var(--text-dim)' }}>项目总金额</p>
-            <p className="text-xl font-bold" style={{ color: 'var(--text-bright)' }}>¥{totalAmount.toLocaleString()}</p>
+            <p className="text-sm" style={{ color: 'var(--text-dim)' }}>到账金额</p>
+            <p className="text-xl font-bold" style={{ color: 'var(--text-bright)' }}>¥{maxReimbursable.toLocaleString()}</p>
           </div>
           <div>
             <p className="text-sm" style={{ color: 'var(--text-dim)' }}>已报销</p>
@@ -127,7 +129,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
         <p className="text-sm mt-2" style={{ color: 'var(--text-dim)' }}>报销进度: {progress.toFixed(1)}%</p>
         {!isFullyReimbursed && (
           <p className="text-sm mt-1" style={{ color: 'var(--warning)' }}>
-            ⚠ 报销金额未达到项目总金额，还差 ¥{(totalAmount - totalReimbursed).toLocaleString()}
+            ⚠ 报销金额未达到到账金额，还差 ¥{Math.max(0, maxReimbursable - totalReimbursed).toLocaleString()}
           </p>
         )}
         <div className="mt-4 flex justify-end">
@@ -141,7 +143,7 @@ export default function ReimbursementTab({ project, isAdmin, currentUserId }) {
           <ConfirmModal
             open={closureConfirm}
             title="确认进入结题"
-            message={`当前报销金额 ¥${totalReimbursed.toLocaleString()} 未达到项目总金额 ¥${totalAmount.toLocaleString()}，还差 ¥${(totalAmount - totalReimbursed).toLocaleString()}。确定要进入结题阶段吗？`}
+            message={`当前报销金额 ¥${totalReimbursed.toLocaleString()} 未达到到账金额 ¥${maxReimbursable.toLocaleString()}，还差 ¥${Math.max(0, maxReimbursable - totalReimbursed).toLocaleString()}。确定要进入结题阶段吗？`}
             onConfirm={async () => {
               setClosureConfirm(false)
               try {

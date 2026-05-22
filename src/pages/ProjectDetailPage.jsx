@@ -9,7 +9,8 @@ import InvoiceTab from './tabs/InvoiceTab'
 import ReimbursementTab from './tabs/ReimbursementTab'
 import ClosureTab from './tabs/ClosureTab'
 import { ArrowLeft, Building2, User, Download } from 'lucide-react'
-import { statusLabels } from '../utils/constants'
+import { statusLabels, getRemainingDays } from '../utils/constants'
+import { format } from 'date-fns'
 import { getFileUrl } from '../utils/storage'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
@@ -57,11 +58,18 @@ export default function ProjectDetailPage() {
     const zip = new JSZip()
 
     // 1. 项目概要
+    const totalReimbursed = reimbursements.reduce((sum, r) => sum + (r.amount || 0), 0)
+    const receivedAmount = payment?.received_amount || 0
+    const availableAmount = receivedAmount - totalReimbursed
+
     zip.file('项目概要.txt', [
       `项目名称: ${project.name}`,
       `企业名称: ${project.company_name}`,
       `负责人: ${project.company_contact || '未指定'}`,
       `总金额: ¥${(project.total_amount || 0).toLocaleString()}`,
+      `到账金额: ¥${receivedAmount.toLocaleString()}`,
+      `已报销: ¥${totalReimbursed.toLocaleString()}`,
+      `可用金额: ¥${availableAmount.toLocaleString()}`,
       `当前状态: ${statusLabels[project.status] || project.status}`,
       `创建时间: ${project.created_at}`,
     ].join('\n'))
@@ -195,6 +203,20 @@ export default function ProjectDetailPage() {
               <span className="flex items-center"><Building2 className="w-4 h-4 mr-1" />{project.company_name}</span>
               {project.company_contact && <span className="flex items-center"><User className="w-4 h-4 mr-1" />负责人: {project.company_contact}</span>}
               <span className="flex items-center">¥{project.total_amount?.toLocaleString() || '0'}</span>
+              {project.deadline && (
+                <span className="flex items-center">
+                  截止: {format(new Date(project.deadline), 'yyyy-MM-dd')}
+                  {(() => {
+                    const remaining = getRemainingDays(project.deadline, project.status)
+                    if (remaining === null) return null
+                    return (
+                      <span className="ml-2" style={{ color: remaining < 0 ? 'var(--danger)' : remaining <= 7 ? 'var(--warning)' : 'var(--text-dim)' }}>
+                        {remaining < 0 ? `(已逾期${Math.abs(remaining)}天)` : `(剩余${remaining}天)`}
+                      </span>
+                    )
+                  })()}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-2 mt-2 lg:mt-0">

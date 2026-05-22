@@ -9,7 +9,7 @@ import { SkeletonTable } from '../components/common/Skeleton'
 import Pagination from '../components/common/Pagination'
 import Modal from '../components/common/Modal'
 import { exportCsv } from '../utils/exportCsv'
-import { statusLabels } from '../utils/constants'
+import { statusLabels, getRemainingDays } from '../utils/constants'
 import { translateError } from '../utils/errors'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -34,7 +34,8 @@ export default function ProjectListPage() {
     name: '',
     company_name: '',
     project_number: '',
-    total_amount: ''
+    total_amount: '',
+    deadline: ''
   })
   const navigate = useNavigate()
 
@@ -56,12 +57,13 @@ export default function ProjectListPage() {
     try {
       const project = await createProject.mutateAsync({
         ...formData,
-        total_amount: Math.max(0, parseFloat(formData.total_amount) || 0)
+        total_amount: Math.max(0, parseFloat(formData.total_amount) || 0),
+        deadline: formData.deadline || null
       })
       await initContract.mutateAsync(project.id)
       toast.success('项目创建成功')
       setShowCreate(false)
-      setFormData({ name: '', company_name: '', project_number: '', total_amount: '' })
+      setFormData({ name: '', company_name: '', project_number: '', total_amount: '', deadline: '' })
       navigate(`/projects/${project.id}`)
     } catch (error) {
       toast.error('创建失败: ' + translateError(error.message))
@@ -87,7 +89,8 @@ export default function ProjectListPage() {
           name: editProject.name,
           company_name: editProject.company_name,
           project_number: editProject.project_number,
-          total_amount: Math.max(0, parseFloat(editProject.total_amount) || 0)
+          total_amount: Math.max(0, parseFloat(editProject.total_amount) || 0),
+          deadline: editProject.deadline || null
         }
       })
       toast.success('项目已更新')
@@ -104,6 +107,7 @@ export default function ProjectListPage() {
     const { field, asc } = sort
     let va = a[field], vb = b[field]
     if (field === 'total_amount') { va = va || 0; vb = vb || 0 }
+    if (field === 'deadline') { va = va || '9999-12-31'; vb = vb || '9999-12-31' }
     if (va < vb) return asc ? -1 : 1
     if (va > vb) return asc ? 1 : -1
     return 0
@@ -123,8 +127,8 @@ export default function ProjectListPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
-              const headers = ['项目名称', '项目ID', '项目编号', '企业名称', '总金额', '状态', '创建时间']
-              const rows = projects.map(p => [p.name, p.id, p.project_number || '', p.company_name, p.total_amount || 0, statusLabels[p.status] || p.status, p.created_at])
+              const headers = ['项目名称', '项目ID', '项目编号', '企业名称', '总金额', '截止日期', '状态', '创建时间']
+              const rows = projects.map(p => [p.name, p.id, p.project_number || '', p.company_name, p.total_amount || 0, p.deadline || '', statusLabels[p.status] || p.status, p.created_at])
               exportCsv('项目填报.csv', headers, rows)
             }}
             className="flex items-center px-3 py-2.5 text-sm rounded-xl btn-transition"
@@ -188,6 +192,7 @@ export default function ProjectListPage() {
                   { key: 'project_number', label: '项目编号' },
                   { key: 'company_name', label: '企业名称' },
                   { key: 'total_amount', label: '总金额' },
+                  { key: 'deadline', label: '截止日期' },
                   { key: 'status', label: '当前状态' },
                   { key: 'created_at', label: '创建时间' },
                 ].map(col => (
@@ -268,6 +273,37 @@ export default function ProjectListPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--accent2)' }}>
                     ¥{(project.total_amount || 0).toLocaleString()}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {project.deadline ? (
+                      (() => {
+                        const remaining = getRemainingDays(project.deadline, project.status)
+                        if (remaining === null) {
+                          return <span style={{ color: 'var(--text-muted)' }}>{format(new Date(project.deadline), 'yyyy-MM-dd')}</span>
+                        }
+                        if (remaining < 0) {
+                          return (
+                            <span style={{ color: 'var(--danger)', fontWeight: 600 }}>
+                              已逾期 {Math.abs(remaining)} 天
+                            </span>
+                          )
+                        }
+                        if (remaining <= 7) {
+                          return (
+                            <span style={{ color: 'var(--warning)' }}>
+                              剩余 {remaining} 天
+                            </span>
+                          )
+                        }
+                        return (
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            剩余 {remaining} 天
+                          </span>
+                        )
+                      })()
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>-</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2.5 py-1 text-xs font-medium rounded-full" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                       {statusLabels[project.status] || project.status}
@@ -285,7 +321,8 @@ export default function ProjectListPage() {
                           name: project.name,
                           company_name: project.company_name,
                           project_number: project.project_number || '',
-                          total_amount: project.total_amount?.toString() || ''
+                          total_amount: project.total_amount?.toString() || '',
+                          deadline: project.deadline || ''
                         })
                       }}
                       className="mr-3 transition-colors"
@@ -361,6 +398,10 @@ export default function ProjectListPage() {
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
             <input type="number" min="0" step="0.01" value={editProject?.total_amount || ''} onChange={(e) => setEditProject({ ...editProject, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目截止日期</label>
+            <input type="date" value={editProject?.deadline || ''} onChange={(e) => setEditProject({ ...editProject, deadline: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
           <div className="flex justify-end space-x-3 pt-4">
             <button type="button" onClick={() => setEditProject(null)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>
             <button type="submit" disabled={updateProject.isPending} className="px-4 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 btn-transition" style={{ background: 'var(--gradient-primary)' }}>
@@ -388,6 +429,10 @@ export default function ProjectListPage() {
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目总金额</label>
             <input type="number" min="0" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text)' }}>项目截止日期</label>
+            <input type="date" value={formData.deadline} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} className="w-full rounded-xl shadow-sm transition-all" style={inputStyle} />
           </div>
           <div className="flex justify-end space-x-3 pt-4">
             <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2.5 text-sm font-medium rounded-xl btn-transition" style={{ background: 'var(--bg-table-head)', color: 'var(--text)' }}>取消</button>

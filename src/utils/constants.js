@@ -7,3 +7,12 @@ export const statusLabels = {
   closure: '结题阶段',
   completed: '已完成'
 }
+
+export function getRemainingDays(deadline, status) {
+  if (!deadline || status === 'completed') return null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const d = new Date(deadline)
+  d.setHours(0, 0, 0, 0)
+  return Math.ceil((d - today) / 86400000)
+}

@@ -8,7 +8,7 @@ import ProgressStepper from '../components/common/ProgressStepper'
 import Pagination from '../components/common/Pagination'
 import { Search } from 'lucide-react'
 import { SkeletonCard } from '../components/common/Skeleton'
-import { statusLabels } from '../utils/constants'
+import { statusLabels, getRemainingDays } from '../utils/constants'
 import { format } from 'date-fns'
 
 const PAGE_SIZE = 10
@@ -149,10 +149,12 @@ export default function DashboardPage() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {projects.map((project) => {
+              const receivedAmount = project.payments?.[0]?.received_amount || 0
               const totalReimbursed = project.reimbursements?.reduce(
                 (sum, r) => sum + (r.amount || 0),
                 0
               ) || 0
+              const availableAmount = receivedAmount - totalReimbursed
 
               const stageResponsibles = getStageResponsibles(project)
 
@@ -177,11 +179,29 @@ export default function DashboardPage() {
                     <ProgressStepper currentStatus={project.status} responsibles={stageResponsibles} />
                   </div>
 
-                  <div className="flex flex-wrap justify-between text-xs gap-1" style={{ color: 'var(--text-muted)' }}>
-                    <span>已报销: ¥{totalReimbursed.toLocaleString()}</span>
-                    <span>总额: ¥{project.total_amount?.toLocaleString() || '0'}</span>
-                    <span>{format(new Date(project.created_at), 'yyyy-MM-dd')}</span>
+                  <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span>合同金额 <b>¥{(project.total_amount || 0).toLocaleString()}</b></span>
+                    <span>到账金额 <b>¥{receivedAmount.toLocaleString()}</b></span>
+                    <span>报销金额 <b>¥{totalReimbursed.toLocaleString()}</b></span>
+                    <span>可用金额 <b style={{ color: availableAmount < 0 ? 'var(--danger)' : 'var(--success)' }}>¥{availableAmount.toLocaleString()}</b></span>
                   </div>
+
+                  {project.deadline && (() => {
+                    const remaining = getRemainingDays(project.deadline, project.status)
+                    if (remaining === null) return null
+                    const dateStr = format(new Date(project.deadline), 'yyyy-MM-dd')
+                    return (
+                      <div className="mt-2 text-xs" style={{ color: remaining < 0 ? 'var(--danger)' : remaining <= 7 ? 'var(--warning)' : 'var(--text-muted)' }}>
+                        项目截止日期: {dateStr}
+                        <span className="ml-2">
+                          {remaining < 0
+                            ? `已逾期 ${Math.abs(remaining)} 天`
+                            : `剩余 ${remaining} 天`
+                          }
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })}

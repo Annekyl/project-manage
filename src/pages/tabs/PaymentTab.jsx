@@ -29,6 +29,7 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
         payment: {
           payment_responsible_id: payment.payment_responsible_id || currentUserId || '',
           payment_amount: payment.payment_amount || '',
+          received_amount: payment.received_amount || '',
           payment_screenshot_url: payment.payment_screenshot_url || '',
           bank_flow_number: payment.bank_flow_number || '',
           paid_at: payment.paid_at || ''
@@ -110,7 +111,7 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
           <StatusBadge locked={isPaymentLocked} hasData={!!payment.payment_amount || !!localData.payment.payment_amount} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>责任人</label>
             <UserSelect
@@ -127,6 +128,23 @@ export default function PaymentTab({ project, isAdmin, currentUserId }) {
               step="0.01"
               value={localData.payment.payment_amount}
               onChange={(e) => handleLocalChange('payment', 'payment_amount', e.target.value)}
+              disabled={isPaymentLocked}
+              className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
+              style={{
+                background: isPaymentLocked ? 'var(--bg-table-head)' : 'var(--bg-input)',
+                borderColor: 'var(--border)',
+                color: isPaymentLocked ? 'var(--text-dim)' : 'var(--text)',
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>到账金额 (元)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={localData.payment.received_amount}
+              onChange={(e) => handleLocalChange('payment', 'received_amount', e.target.value)}
               disabled={isPaymentLocked}
               className="w-full rounded-xl shadow-sm transition-all disabled:cursor-not-allowed"
               style={{
