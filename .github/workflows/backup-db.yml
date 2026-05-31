@@ -29,7 +29,9 @@ jobs:
       - name: Run backup
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: node scripts/backup-db.js "$DATABASE_URL"
+        run: |
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          node scripts/backup-db.js "$DATABASE_URL"
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
