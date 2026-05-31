@@ -1,6 +1,6 @@
 -- ========================================
 -- 修复 admin_delete_user RPC 函数
--- 删除用户前先将所有外键引用置为 NULL
+-- 如果用户有外键引用则禁止删除
 -- 在 Supabase SQL Editor 中执行
 -- ========================================
 
@@ -10,6 +10,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  ref_count INT := 0;
+  user_name TEXT;
 BEGIN
   -- 仅允许管理员调用
   IF NOT EXISTS (
@@ -23,35 +26,34 @@ BEGIN
     RAISE EXCEPTION 'Cannot delete yourself';
   END IF;
 
-  -- 清除 contracts 表中的外键引用
-  UPDATE public.contracts SET audit_sign_responsible_id   = NULL WHERE audit_sign_responsible_id   = target_user_id;
-  UPDATE public.contracts SET sign_confirm_responsible_id = NULL WHERE sign_confirm_responsible_id = target_user_id;
-  UPDATE public.contracts SET stamp_upload_responsible_id = NULL WHERE stamp_upload_responsible_id = target_user_id;
-  UPDATE public.contracts SET send_out_responsible_id     = NULL WHERE send_out_responsible_id     = target_user_id;
+  -- 获取用户名
+  SELECT name INTO user_name FROM public.profiles WHERE id = target_user_id;
 
-  -- 清除 payments 表中的外键引用
-  UPDATE public.payments SET payment_responsible_id = NULL WHERE payment_responsible_id = target_user_id;
-  UPDATE public.payments SET claim_responsible_id   = NULL WHERE claim_responsible_id   = target_user_id;
+  -- 检查是否存在外键引用
+  SELECT COUNT(*) INTO ref_count FROM (
+    SELECT 1 FROM public.contracts   WHERE audit_sign_responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.contracts WHERE sign_confirm_responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.contracts WHERE stamp_upload_responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.contracts WHERE send_out_responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.payments  WHERE payment_responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.payments  WHERE claim_responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.invoices  WHERE responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.reimbursements WHERE responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.closures  WHERE responsible_id = target_user_id
+      UNION ALL SELECT 1 FROM public.projects  WHERE created_by = target_user_id
+  ) refs;
 
-  -- 清除 invoices 表中的外键引用
-  UPDATE public.invoices SET responsible_id = NULL WHERE responsible_id = target_user_id;
+  IF ref_count > 0 THEN
+    RAISE EXCEPTION '用户「%」仍有 % 条项目记录关联，无法删除。请先转移相关负责人后再操作。', user_name, ref_count;
+  END IF;
 
-  -- 清除 reimbursements 表中的外键引用
-  UPDATE public.reimbursements SET responsible_id = NULL WHERE responsible_id = target_user_id;
-
-  -- 清除 closures 表中的外键引用
-  UPDATE public.closures SET responsible_id = NULL WHERE responsible_id = target_user_id;
-
-  -- 清除 audit_logs 表中的外键引用
+  -- 清除 audit_logs（日志不影响业务，直接置 NULL）
   UPDATE public.audit_logs SET user_id = NULL WHERE user_id = target_user_id;
 
-  -- 清除 projects 表中的外键引用
-  UPDATE public.projects SET created_by = NULL WHERE created_by = target_user_id;
-
-  -- 删除 profiles（会级联删除 auth.users）
+  -- 删除 profiles
   DELETE FROM public.profiles WHERE id = target_user_id;
 
-  -- 删除 auth.users（profiles 有 ON DELETE CASCADE，通常会自动删除，但显式删除更保险）
+  -- 删除 auth.users
   DELETE FROM auth.users WHERE id = target_user_id;
 END;
 $$;
