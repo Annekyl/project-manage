@@ -1,8 +1,7 @@
-import pg from 'pg'
+import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 
-// 从命令行参数或环境变量获取连接字符串
 const DATABASE_URL = process.argv[2] || process.env.DATABASE_URL
 
 if (!DATABASE_URL) {
@@ -11,106 +10,38 @@ if (!DATABASE_URL) {
   process.exit(1)
 }
 
-const TABLES = [
-  'projects',
-  'contracts',
-  'payments',
-  'invoices',
-  'reimbursements',
-  'closures',
-  'audit_logs',
-  'profiles',
-]
+const dbDir = path.resolve('db')
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true })
 
-async function backup() {
-  const client = new pg.Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
+const timestamp = new Date().toISOString().slice(0, 10)
 
-  try {
-    await client.connect()
-    console.log('已连接到数据库')
+// 1. 导出完整数据库结构（表、视图、函数、触发器、索引、约束等）
+console.log('正在导出数据库结构...')
+const schemaPath = path.join(dbDir, `schema_${timestamp}.sql`)
+execSync(
+  `pg_dump "${DATABASE_URL}" --schema-only --no-owner --no-privileges --no-comments -f "${schemaPath}"`,
+  { stdio: 'inherit' }
+)
+console.log(`结构导出完成: ${schemaPath}`)
 
-    const lines = []
-    lines.push('-- 数据库备份')
-    lines.push(`-- 时间: ${new Date().toISOString()}`)
-    lines.push('')
+// 2. 导出所有数据
+console.log('正在导出数据库数据...')
+const dataPath = path.join(dbDir, `data_${timestamp}.sql`)
+execSync(
+  `pg_dump "${DATABASE_URL}" --data-only --no-owner --no-privileges --no-comments -f "${dataPath}"`,
+  { stdio: 'inherit' }
+)
+console.log(`数据导出完成: ${dataPath}`)
 
-    for (const table of TABLES) {
-      console.log(`正在导出 ${table}...`)
+// 3. 合并为完整备份
+const fullPath = path.join(dbDir, `backup_${timestamp}.sql`)
+const header = `-- ========================================\n-- 产学研项目管理系统 - 完整数据库备份\n-- 时间: ${new Date().toISOString()}\n-- 包含: 表结构 + 触发器 + 函数 + 数据\n-- ========================================\n\n`
+const schemaContent = fs.readFileSync(schemaPath, 'utf-8')
+const dataContent = fs.readFileSync(dataPath, 'utf-8')
+fs.writeFileSync(fullPath, header + schemaContent + '\n-- ========================================\n-- 数据部分\n-- ========================================\n\n' + dataContent, 'utf-8')
 
-      // 获取表结构
-      const { rows: createRows } = await client.query(
-        `SELECT pg_get_tabledef('public', '${table}') as definition`
-      ).catch(() => {
-        // pg_get_tabledef 可能不存在，用另一种方式
-        return { rows: [] }
-      })
+// 删除临时文件，只保留完整备份和结构文件
+fs.unlinkSync(dataPath)
 
-      // 获取列信息
-      const { rows: cols } = await client.query(`
-        SELECT column_name, data_type, is_nullable, column_default
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = $1
-        ORDER BY ordinal_position
-      `, [table])
-
-      if (cols.length === 0) {
-        console.log(`  表 ${table} 不存在，跳过`)
-        continue
-      }
-
-      // 获取行数
-      const { rows: [{ count }] } = await client.query(`SELECT count(*) FROM "${table}"`)
-      console.log(`  共 ${count} 条记录`)
-
-      lines.push(`-- ${table} (${count} 条)`)
-
-      // 分批读取数据
-      const BATCH_SIZE = 500
-      let offset = 0
-      const columnNames = cols.map(c => c.column_name)
-
-      while (true) {
-        const { rows } = await client.query(`SELECT * FROM "${table}" ORDER BY 1 LIMIT $1 OFFSET $2`, [BATCH_SIZE, offset])
-
-        if (rows.length === 0) break
-
-        for (const row of rows) {
-          const values = columnNames.map(col => {
-            const val = row[col]
-            if (val === null) return 'NULL'
-            if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE'
-            if (typeof val === 'number') return val
-            if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'`
-            return `'${String(val).replace(/'/g, "''")}'`
-          })
-
-          lines.push(
-            `INSERT INTO "${table}" (${columnNames.map(c => `"${c}"`).join(', ')}) VALUES (${values.join(', ')});`
-          )
-        }
-
-        offset += BATCH_SIZE
-        if (rows.length < BATCH_SIZE) break
-      }
-
-      lines.push('')
-    }
-
-    const dbDir = path.resolve('db')
-    if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true })
-
-    const timestamp = new Date().toISOString().slice(0, 10)
-    const backupPath = path.join(dbDir, `backup_${timestamp}.sql`)
-    fs.writeFileSync(backupPath, lines.join('\n'), 'utf-8')
-    console.log(`\n备份完成: ${backupPath}`)
-    console.log(`共导出 ${TABLES.length} 张表`)
-
-  } catch (err) {
-    console.error('备份失败:', err.message)
-    process.exit(1)
-  } finally {
-    await client.end()
-  }
-}
-
-backup()
+console.log(`\n完整备份完成: ${fullPath}`)
+console.log(`结构文件: ${schemaPath}`)
